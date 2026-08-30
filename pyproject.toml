@@ -1,0 +1,53 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tennis-model"
+version = "0.1.0"
+description = "Reproducible implementation of the frozen Tennis Model v1.0 specification"
+requires-python = ">=3.12"
+dependencies = [
+  "numpy>=2.0",
+  "pandas>=2.2",
+  "pyarrow>=16",
+  "pydantic>=2.8,<3",
+  "PyYAML>=6",
+  "scipy>=1.14",
+]
+
+[project.scripts]
+tennis = "tennis_model.cli:main"
+
+[project.optional-dependencies]
+dev = [
+  "hypothesis>=6",
+  "mypy>=1.11",
+  "pandas-stubs>=2.2",
+  "pytest>=8",
+  "pytest-cov>=5",
+  "ruff>=0.6",
+  "types-PyYAML>=6",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tennis_model"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-config --strict-markers"
+testpaths = ["tests"]
+markers = [
+  "slow_statistical: deterministic large-sample statistical contract checks",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["tennis_model"]

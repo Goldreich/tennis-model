@@ -1,0 +1,43 @@
+schema_version: duration-model-config/v1
+framework_version: v1.0
+
+window_days: 1095
+half_life_days: 365.0
+
+ridge:
+  intercept_sd: 240.0
+  points_sd: 2.0
+  games_sd: 8.0
+  sets_sd: 24.0
+  tiebreaks_sd: 20.0
+  # Pace is deliberately much tighter than match-level duration scales.
+  player_pace_sd: 4.0
+  indoor_sd: 20.0
+  temperature_sd: 1.5
+  night_session_sd: 20.0
+  current_event_sd: 4.0
+
+residual:
+  initial_sigma0: 8.0
+  initial_sigma1: 0.5
+  initial_nu: 6.0
+  log_sigma0_prior_sd: 1.5
+  log_sigma1_prior_sd: 1.5
+  log_nu_minus_two_prior_sd: 1.5
+
+optimizer:
+  method: L-BFGS-B
+  max_iterations: 1500
+  max_line_search_steps: 100
+  gradient_tolerance: 1.0e-7
+  function_tolerance: 1.0e-10
+  covariance_relative_step: 1.0e-4
+  covariance_eigenvalue_floor: 1.0e-8
+  full_covariance_max_parameters: 1024
+
+context:
+  supported_terms: [indoor, temperature_c, night_session, current_usopen_2026]
+  temperature_reference_c: 25.0
+  current_event: US Open
+  current_event_year: 2026
+  minimum_level_rows: 20

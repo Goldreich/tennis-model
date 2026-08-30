@@ -1,0 +1,39 @@
+# Frozen framework identity. Every probability-affecting numerical choice is
+# explicit here because the prose specification does not assign numeric prior
+# scales. Artifacts store the parsed configuration and its canonical SHA-256.
+framework_version: v1.0
+
+prior:
+  intercept_sd: 2.5
+  context_coefficient_sd: 1.0
+  # log(0.35); applies to the fitted non-centered shrinkage-scale parameters.
+  log_shrinkage_scale_mean: -1.0498221244986778
+  log_shrinkage_scale_sd: 0.75
+
+optimizer:
+  method: L-BFGS-B
+  max_iterations: 1500
+  max_line_search_steps: 100
+  gradient_tolerance: 1.0e-6
+  function_tolerance: 1.0e-10
+  initial_kappa: 50.0
+  kappa_lower: 0.1
+  kappa_upper: 1000000.0
+  initial_shrinkage_scale: 0.35
+  shrinkage_scale_lower: 0.02
+  shrinkage_scale_upper: 3.0
+  laplace_max_full_parameters: 200
+  laplace_relative_step: 1.0e-4
+  laplace_eigenvalue_floor: 1.0e-6
+
+context:
+  # Standard Sackmann rows do not reliably identify roof state. The interface
+  # and fitted term are implemented, but the production default is inactive
+  # rather than treating missing roof state as outdoor.
+  include_indoor_hard: false
+  # The frozen design identifies these as the principally supported components.
+  event_year_effect_components: [A, Q1, Q2]
+
+diagnostics:
+  # Diagnostic/data-grade warning only; it does not alter predictions.
+  sparse_weighted_trials_warning: 100.0

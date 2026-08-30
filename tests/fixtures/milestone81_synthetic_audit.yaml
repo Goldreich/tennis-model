@@ -1,0 +1,39 @@
+schema_version: milestone-8.1-synthetic-audit/v1
+deterministic_seed: 20260830
+cases:
+  - case_id: normal-completion
+    category: NORMAL_COMPLETION
+    expected_status: settled
+    evidence_test: test_result_reveal_settlement_and_append_only_ledger
+  - case_id: started-retirement
+    category: RETIREMENT
+    expected_status: settlement-policy-applied
+    evidence_test: test_retirement_walkover_and_monotone_threshold_settlement
+  - case_id: walkover-status
+    category: WALKOVER_STATUS
+    expected_status: void
+    evidence_test: test_retirement_walkover_and_monotone_threshold_settlement
+  - case_id: missing-stat-prop
+    category: MISSING_STAT_PROP
+    expected_status: PROP_UNAVAILABLE_POST_REVEAL
+    evidence_test: test_rolling_origin_selects_only_safe_snapshot_and_reveals_after_lock
+  - case_id: void-settlement
+    category: VOID_SETTLEMENT
+    expected_status: void
+    evidence_test: test_retirement_walkover_and_monotone_threshold_settlement
+  - case_id: append-only-correction
+    category: CORRECTION
+    expected_status: corrected-by-new-row
+    evidence_test: test_result_reveal_settlement_and_append_only_ledger
+  - case_id: immutable-lock-revision
+    category: LOCK_REVISION
+    expected_status: new-revision
+    evidence_test: test_lock_round_trip_immutability_revision_and_full_reproduction
+  - case_id: path-escalation
+    category: PATH_ESCALATION
+    expected_status: escalated-and-lower-run-discarded
+    evidence_test: test_end_to_end_escalation_discards_the_standard_path_run
+  - case_id: policy-disabled-market
+    category: POLICY_DISABLED_MARKET
+    expected_status: POLICY_DISABLED
+    evidence_test: test_milestone81_prop_policy_gates

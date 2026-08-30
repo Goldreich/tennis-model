@@ -1,0 +1,138 @@
+schema_version: historical-validation-data-policy/v1
+mode: RETROSPECTIVE_FINALIZED
+exact_date_algorithm_version: sackmann-tennis-data-exact-date/v1
+source_manifest_version: production-sackmann-2017-2025/v1
+crosswalk_set_sha256: 4f25376b139d5e4871cf7d9f304644431703179c7ec144e8cee9638a18548495
+exact_date_history_complete: false
+coverage_gate:
+  source_rows: 47854
+  matched_rows: 41041
+  residual_rows: 6813
+  coverage: 0.8576294562627993
+  sufficient_for_b6_c6_and_rolling_backtest: false
+  reason: >-
+    Residual rows can change retirement history and the last-started-match date used by C6;
+    they therefore cannot be treated as absent or silently excluded.
+generated_artifacts:
+  aggregate_manifest:
+    path: data/processed/retrospective-finalized-crosswalk-v1/aggregate_manifest.json
+    sha256: 35db7a63950447ebe65b69864b65a82f59d9715eee980ed57e31521526ffa331
+  summary:
+    path: data/processed/retrospective-finalized-crosswalk-v1/summary.csv
+    sha256: d9ba4b4973c9976ae9a532c209703664ec72b182e17c30755500c59a06bf7b89
+  residual_detail:
+    path: data/processed/retrospective-finalized-crosswalk-v1/residual_detail.csv
+    sha256: df1733beddc6796a82186eb2fa381d3b09027546489afb1f85f56479b9d81eb9
+members:
+  - tour: ATP
+    year: 2017
+    sackmann_source_id: sackmann-atp-2017
+    sackmann_sha256: 4bb295788c37487b120cd39171d413cef0ebc6f4c2d9fa40b7261f5143f3719f
+    tennis_data_sha256: d8d2e2af5bda1f7891de39b18739ba229719e00672c22d2892b3e347dc6e1537
+    crosswalk_id: 181179690d4d6a41fbf982f597f9e89de9f7e5f18f8b41cd620c4ad288772088
+  - tour: ATP
+    year: 2018
+    sackmann_source_id: sackmann-atp-2018
+    sackmann_sha256: 0363dc6012190f337fcf34b4ca443634f192c4670cc6c14c94342a54b9adf7eb
+    tennis_data_sha256: 3e52c70872c87736110bfe22f682bd224bb5883bf5367a7f8997aab991c7162a
+    crosswalk_id: 2a5958cbafb7d582f301801088c7c17e9f1fbed0623ca3b0d70c46b813971c0f
+  - tour: ATP
+    year: 2019
+    sackmann_source_id: sackmann-atp-2019
+    sackmann_sha256: 7f1a21451ff622bb0c6a09690898db46d51e59dcdf08086d369753822e1d5478
+    tennis_data_sha256: a267a7a779406ccd89762b98cbe4bb6370839a658f2a95ac098310ea3394e827
+    crosswalk_id: 6796a867443c15e0422b256a3ca25a6a551d5dff365a38ef0948f598286c2900
+  - tour: ATP
+    year: 2020
+    sackmann_source_id: sackmann-atp-2020
+    sackmann_sha256: 985a917b72d5efb7dd5ef9df8ecc58c637ed6b88561ccad364653af71ac12da0
+    tennis_data_sha256: 310467bb81360e1981e9f3775946c63a5dc707a1d941e5ad4d9713da97daa752
+    crosswalk_id: da2c84b7d6d4b26faa689fbe2ff200d597cb8c6973ab2bb69ba2c2e86fd512ef
+  - tour: ATP
+    year: 2021
+    sackmann_source_id: sackmann-atp-2021
+    sackmann_sha256: b9b1d31a4b0b9273b8f338cbb1347c5a847ad2361334ec760a286f5990fba347
+    tennis_data_sha256: dcbd273a4fa101f4783384dbfe3410bfc7ee7bed0aed4ab9a09afbffb294c4ca
+    crosswalk_id: 23b65352fbd2e5aeceba8d64d94ee54bd0f6ff340c1c1b807d99ba3a41128c14
+  - tour: ATP
+    year: 2022
+    sackmann_source_id: sackmann-atp-2022
+    sackmann_sha256: 7190042565ab8400e74f44fda60700acb36ddf3c82d393f331a07589e05b5f52
+    tennis_data_sha256: 9feaa1567783cb063e23b6f2d653d4c97210a48b001373eb367eb2d8b6a60a86
+    crosswalk_id: 5caa0d7238505371b83a2bf9361021625434f5e7231443ec3c77271a4b41eec5
+  - tour: ATP
+    year: 2023
+    sackmann_source_id: sackmann-atp-2023
+    sackmann_sha256: 9b9671aa7c8156e74c2e4466675b7ed4e762bb8a58b7237a30daefd84ffceff5
+    tennis_data_sha256: 5789a33720cbd5da9c7909713cfca131927eedaf305ab2b111ec6f8dda842b29
+    crosswalk_id: 3dd19d82d1093eed01b317fff63925e33042695d14998462a8f91de063b4578c
+  - tour: ATP
+    year: 2024
+    sackmann_source_id: sackmann-atp-2024
+    sackmann_sha256: 73aec32247a0db68d8aa8fd8003eefea132905177f1cb145502d9215b53311be
+    tennis_data_sha256: d92a4d4167cfece60b624e81ba8d6724d90a4704637341bb0bc87539a36c746a
+    crosswalk_id: 1d1b358a5909f54ce617b42722ef91ede84ff12694e612ab7329b03df3256e39
+  - tour: ATP
+    year: 2025
+    sackmann_source_id: sackmann-atp-2025
+    sackmann_sha256: 78c356ef9328b89ae58a17564d61c02cdad2a3a007f6b8af5cfc17992b11bb2d
+    tennis_data_sha256: 941aaa1abc49131f51e1f7f6eee93dac829dd72578ca10b341dfc4c9d41ba013
+    crosswalk_id: c462d1beaf3d491b2d4e8c045a8618ff23d10844e8314ac43c6e9038f03a54e0
+  - tour: WTA
+    year: 2017
+    sackmann_source_id: sackmann-wta-2017
+    sackmann_sha256: eae2de68b2e87fcac7e2ff1f6168c78d1baba91fb0ffecda455aa329a81437c8
+    tennis_data_sha256: 5476fa98ea38a885a5f7141e6aa6c4979dfb2d7f93715f7d13b46a17c1f140e0
+    crosswalk_id: ec35533eb3c681ed467ba9d8a13da24f9b3df57fcbaa535cd67547e838eb76ba
+  - tour: WTA
+    year: 2018
+    sackmann_source_id: sackmann-wta-2018
+    sackmann_sha256: 6ccfc04baabe536e4260083c2e299c8c36668a8e8276dfc309219df23bf9ea38
+    tennis_data_sha256: e96cc8317a634f0238c51f375896bfc47f53de96554adb0291003cc9b26c7278
+    crosswalk_id: 679a925bf3e94c0a5b07e4fba7da76347b98b5d21d05221247f44521ca16208e
+  - tour: WTA
+    year: 2019
+    sackmann_source_id: sackmann-wta-2019
+    sackmann_sha256: da251744c6ece2cab4b94df659ee38a81bb4aa50cf532d48f1a6eb0cc66726d4
+    tennis_data_sha256: 3302aa2b04e4873cd1079ef470d8b63778b35b9b821d2ca52621b933f88a567d
+    crosswalk_id: 96c9bcc5c44e1a967beb44e4ba58c0d79ffcab6a10575ed0e28a436c731ebfed
+  - tour: WTA
+    year: 2020
+    sackmann_source_id: sackmann-wta-2020
+    sackmann_sha256: bcbb285ee8a743ce117952bbb99cfe816bfc685412aa3adc7a9913e7799cd70c
+    tennis_data_sha256: f7dd7c632d8fc3a02c259983ab2dfd83a2e4516a3011d9b70caef6cd49c3eae1
+    crosswalk_id: 9af75ac18018bf0677a9a2c4493d67779cb784bd69d67abb80d5b3d1504d9992
+  - tour: WTA
+    year: 2021
+    sackmann_source_id: sackmann-wta-2021
+    sackmann_sha256: 3f4b865fe9f68aedb3d51597740cf658cf805f676bae652f2bc93cbab4f6e99f
+    tennis_data_sha256: a364ca800b49b6ffc770b6766b8b15cec50ecfa9baf850c7973076dc936b1cc3
+    crosswalk_id: eba28bb4c9d27c76027db2f084bd958847678dd3995404a46e1bf8d9535027ce
+  - tour: WTA
+    year: 2022
+    sackmann_source_id: sackmann-wta-2022
+    sackmann_sha256: f638cf65efefb01a1a10368c1d5217d5f90981fb76193ca3a9c3773c2abc2ba7
+    tennis_data_sha256: d173f08e2607e2a3259448261f50cbe5bed6f298dd204427ea07b7795b4cc155
+    crosswalk_id: 2abfec60925a3351cc5d1e0ebcba25fa19f434f71b8efecfa968a7b22c3ee3e4
+  - tour: WTA
+    year: 2023
+    sackmann_source_id: sackmann-wta-2023
+    sackmann_sha256: b73bf74928155b858cdb7045f6334246336cef604286cb361e695df26911ad18
+    tennis_data_sha256: ea4c4556c841ad696cd417885015fe0c63b7a2414c94d856f9515a238f2fef2a
+    crosswalk_id: 0807578b5af0337473e8ebb28602da758196c3823dd36fd606e2d8360c28eba8
+  - tour: WTA
+    year: 2024
+    sackmann_source_id: sackmann-wta-2024
+    sackmann_sha256: d9bba2a0b3793f63c737ef62a809b82b56b3ad0ee94e1f95e78cecfac7615ed2
+    tennis_data_sha256: 0ce3a4e87c269253dd61e1ab4a3bbeb2d9acdd512f316189e5ad872c86c67b53
+    crosswalk_id: 8c5c35b9f3af6ed7c447a962b70c90cbf7a6e8b0832be4757babc316a6920eca
+  - tour: WTA
+    year: 2025
+    sackmann_source_id: sackmann-wta-2025
+    sackmann_sha256: e4eb002bc6d828b0bd21e04ed286e68722ddc8ccbbb27ea980bf62e938377f96
+    tennis_data_sha256: aac890b7465d0c74812578b2a962b4e5cb4c76455dccb6cece2efa5067448c13
+    crosswalk_id: bc9301d2bd0bce887d12be915f5d4cd27e158c949fb3a1202b8fc6c5e3e76a5b
+target_cohort_policy:
+  required_source_kind: genuine_pre_result_schedule_or_order_of_play
+  record_available_strictly_before_forecast_cutoff: true
+  outcomes_accessible_only_after_persisted_prediction_lock: true

@@ -1,0 +1,12 @@
+schema_version: adaptive-mc-policy/v1
+version: adaptive_mc_cs_v1
+checkpoints: [5000, 10000, 20000, 40000, 70000]
+confidence_level: 0.99
+confidence_sequence:
+  method: beta-binomial-jeffreys-mixture/v1
+  beta_prior_a: 0.5
+  beta_prior_b: 0.5
+  threshold: 100.0
+model_rounding_policy: nearest-percent-half-up-endpoints/v1
+maximum_paths: 70000
+

@@ -1,0 +1,195 @@
+manifest_version: production-sackmann-2017-2025/v1
+sources:
+  - &atp_source
+    source_id: sackmann-atp-2017
+    identity_namespace: sackmann-atp
+    tour: ATP
+    upstream_attribution: Jeff Sackmann / Tennis Abstract; preserved by Kadantte/tennis_atp
+    locator: https://raw.githubusercontent.com/Kadantte/tennis_atp/712be0c5ade693cdab9e69c23a71a0edf5a23c44/atp_matches_2017.csv
+    archive_identifier: 712be0c5ade693cdab9e69c23a71a0edf5a23c44
+    object_identifier: 70015182e04c9a6a589cac127996b9d1d5b8a171
+    sha256: 4bb295788c37487b120cd39171d413cef0ebc6f4c2d9fa40b7261f5143f3719f
+    schema_version: sackmann-match-csv/v1
+    stated_license: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+    retrieved_at_utc: 2026-08-30T08:07:34Z
+    verified_coverage:
+      first_match_date: 2017-01-02
+      last_match_date: 2017-11-24
+      verified_at_utc: 2026-08-30T08:10:00Z
+    row_date_semantics: tournament_start_date
+    availability_lag_days: 21
+    source_effective_at_utc: 2026-06-08T12:36:50Z
+    source_available_at_utc: 2026-06-08T12:36:50Z
+  - <<: *atp_source
+    source_id: sackmann-atp-2018
+    locator: https://raw.githubusercontent.com/Kadantte/tennis_atp/712be0c5ade693cdab9e69c23a71a0edf5a23c44/atp_matches_2018.csv
+    object_identifier: 0f4af87f7bc22ed525c1fd2634a0dbd79c8b5ac7
+    sha256: 0363dc6012190f337fcf34b4ca443634f192c4670cc6c14c94342a54b9adf7eb
+    verified_coverage:
+      first_match_date: 2018-01-01
+      last_match_date: 2018-11-23
+      verified_at_utc: 2026-08-30T08:10:00Z
+  - <<: *atp_source
+    source_id: sackmann-atp-2019
+    locator: https://raw.githubusercontent.com/Kadantte/tennis_atp/712be0c5ade693cdab9e69c23a71a0edf5a23c44/atp_matches_2019.csv
+    object_identifier: cae0152824354b50ceede3d93f856cbfa2d94f38
+    sha256: 7f1a21451ff622bb0c6a09690898db46d51e59dcdf08086d369753822e1d5478
+    verified_coverage:
+      first_match_date: 2018-12-31
+      last_match_date: 2019-11-24
+      verified_at_utc: 2026-08-30T08:10:00Z
+  - <<: *atp_source
+    source_id: sackmann-atp-2020
+    locator: https://raw.githubusercontent.com/Kadantte/tennis_atp/712be0c5ade693cdab9e69c23a71a0edf5a23c44/atp_matches_2020.csv
+    object_identifier: 33e6e0b0d9d29df4b7920943322dcb73b02e6fe7
+    sha256: 985a917b72d5efb7dd5ef9df8ecc58c637ed6b88561ccad364653af71ac12da0
+    verified_coverage:
+      first_match_date: 2020-01-06
+      last_match_date: 2020-11-16
+      verified_at_utc: 2026-08-30T08:10:00Z
+  - <<: *atp_source
+    source_id: sackmann-atp-2021
+    locator: https://raw.githubusercontent.com/Kadantte/tennis_atp/712be0c5ade693cdab9e69c23a71a0edf5a23c44/atp_matches_2021.csv
+    object_identifier: d95f705c240efe6b535e943cc07125f6f2b367e9
+    sha256: b9b1d31a4b0b9273b8f338cbb1347c5a847ad2361334ec760a286f5990fba347
+    verified_coverage:
+      first_match_date: 2021-01-04
+      last_match_date: 2021-12-05
+      verified_at_utc: 2026-08-30T08:10:00Z
+  - <<: *atp_source
+    source_id: sackmann-atp-2022
+    locator: https://raw.githubusercontent.com/Kadantte/tennis_atp/712be0c5ade693cdab9e69c23a71a0edf5a23c44/atp_matches_2022.csv
+    object_identifier: f0d0ced1145a0585f24ca7d1bbdb95b57ee92308
+    sha256: 7190042565ab8400e74f44fda60700acb36ddf3c82d393f331a07589e05b5f52
+    verified_coverage:
+      first_match_date: 2022-01-03
+      last_match_date: 2022-11-27
+      verified_at_utc: 2026-08-30T08:10:00Z
+  - <<: *atp_source
+    source_id: sackmann-atp-2023
+    locator: https://raw.githubusercontent.com/Kadantte/tennis_atp/712be0c5ade693cdab9e69c23a71a0edf5a23c44/atp_matches_2023.csv
+    object_identifier: f9cdafde0083793c943ecf0701bc5c51602ca215
+    sha256: 9b9671aa7c8156e74c2e4466675b7ed4e762bb8a58b7237a30daefd84ffceff5
+    verified_coverage:
+      first_match_date: 2023-01-02
+      last_match_date: 2023-11-27
+      verified_at_utc: 2026-08-30T08:10:00Z
+  - <<: *atp_source
+    source_id: sackmann-atp-2024
+    locator: https://raw.githubusercontent.com/Kadantte/tennis_atp/712be0c5ade693cdab9e69c23a71a0edf5a23c44/atp_matches_2024.csv
+    object_identifier: c401319bc1dec4633dd2c730aa5a7a7376e176f8
+    sha256: 73aec32247a0db68d8aa8fd8003eefea132905177f1cb145502d9215b53311be
+    verified_coverage:
+      first_match_date: 2024-01-01
+      last_match_date: 2024-12-18
+      verified_at_utc: 2026-08-30T08:10:00Z
+  - <<: *atp_source
+    source_id: sackmann-atp-2025
+    locator: https://raw.githubusercontent.com/Kadantte/tennis_atp/712be0c5ade693cdab9e69c23a71a0edf5a23c44/atp_matches_2025.csv
+    object_identifier: b9c0d84ee91691cc10fbe1d56212c39760dddcdb
+    sha256: 78c356ef9328b89ae58a17564d61c02cdad2a3a007f6b8af5cfc17992b11bb2d
+    verified_coverage:
+      first_match_date: 2024-12-27
+      last_match_date: 2025-12-17
+      verified_at_utc: 2026-08-30T08:10:00Z
+  - &wta_source
+    source_id: sackmann-wta-2017
+    identity_namespace: sackmann-wta
+    tour: WTA
+    upstream_attribution: Jeff Sackmann / Tennis Abstract; preserved by VictorSquidWei/tennis_wta
+    locator: https://raw.githubusercontent.com/VictorSquidWei/tennis_wta/85ef6efaa04ca860ed592a935498dcda9460ea91/wta_matches_2017.csv
+    archive_identifier: 85ef6efaa04ca860ed592a935498dcda9460ea91
+    object_identifier: d91f65b08bf5ca1c6b7443fdbc33fd1b1b66a2bc
+    sha256: eae2de68b2e87fcac7e2ff1f6168c78d1baba91fb0ffecda455aa329a81437c8
+    schema_version: sackmann-match-csv/v1
+    stated_license: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+    retrieved_at_utc: 2026-08-30T08:07:34Z
+    verified_coverage:
+      first_match_date: 2017-01-02
+      last_match_date: 2017-11-11
+      verified_at_utc: 2026-08-30T08:10:00Z
+    row_date_semantics: tournament_start_date
+    availability_lag_days: 21
+    source_effective_at_utc: 2026-05-06T21:02:23Z
+    source_available_at_utc: 2026-05-06T21:02:23Z
+  - <<: *wta_source
+    source_id: sackmann-wta-2018
+    locator: https://raw.githubusercontent.com/VictorSquidWei/tennis_wta/85ef6efaa04ca860ed592a935498dcda9460ea91/wta_matches_2018.csv
+    object_identifier: 8d1bc75b1e608bea6d82071f6ffa8a400a3abb87
+    sha256: 6ccfc04baabe536e4260083c2e299c8c36668a8e8276dfc309219df23bf9ea38
+    verified_coverage:
+      first_match_date: 2018-01-01
+      last_match_date: 2018-11-10
+      verified_at_utc: 2026-08-30T08:10:00Z
+  - <<: *wta_source
+    source_id: sackmann-wta-2019
+    locator: https://raw.githubusercontent.com/VictorSquidWei/tennis_wta/85ef6efaa04ca860ed592a935498dcda9460ea91/wta_matches_2019.csv
+    object_identifier: b1e153d89faa6faa5e95eb7bcdf6c5eca469209c
+    sha256: da251744c6ece2cab4b94df659ee38a81bb4aa50cf532d48f1a6eb0cc66726d4
+    verified_coverage:
+      first_match_date: 2018-12-31
+      last_match_date: 2019-12-16
+      verified_at_utc: 2026-08-30T08:10:00Z
+  - <<: *wta_source
+    source_id: sackmann-wta-2020
+    locator: https://raw.githubusercontent.com/VictorSquidWei/tennis_wta/85ef6efaa04ca860ed592a935498dcda9460ea91/wta_matches_2020.csv
+    object_identifier: 1b3ef2297141d224e7ddca8bdbabdad5e698b3e6
+    sha256: bcbb285ee8a743ce117952bbb99cfe816bfc685412aa3adc7a9913e7799cd70c
+    verified_coverage:
+      first_match_date: 2020-01-06
+      last_match_date: 2020-11-09
+      verified_at_utc: 2026-08-30T08:10:00Z
+  - <<: *wta_source
+    source_id: sackmann-wta-2021
+    locator: https://raw.githubusercontent.com/VictorSquidWei/tennis_wta/85ef6efaa04ca860ed592a935498dcda9460ea91/wta_matches_2021.csv
+    object_identifier: ca104914fcb353366e43f49face349960c15ec87
+    sha256: 3f4b865fe9f68aedb3d51597740cf658cf805f676bae652f2bc93cbab4f6e99f
+    verified_coverage:
+      first_match_date: 2021-01-06
+      last_match_date: 2021-11-10
+      verified_at_utc: 2026-08-30T08:10:00Z
+  - <<: *wta_source
+    source_id: sackmann-wta-2022
+    locator: https://raw.githubusercontent.com/VictorSquidWei/tennis_wta/85ef6efaa04ca860ed592a935498dcda9460ea91/wta_matches_2022.csv
+    object_identifier: 211b4d0f4370e44bc4dc025b9be3495fd088f62b
+    sha256: f638cf65efefb01a1a10368c1d5217d5f90981fb76193ca3a9c3773c2abc2ba7
+    verified_coverage:
+      first_match_date: 2022-01-03
+      last_match_date: 2022-11-13
+      verified_at_utc: 2026-08-30T08:10:00Z
+  - <<: *wta_source
+    source_id: sackmann-wta-2023
+    locator: https://raw.githubusercontent.com/VictorSquidWei/tennis_wta/85ef6efaa04ca860ed592a935498dcda9460ea91/wta_matches_2023.csv
+    object_identifier: fe2d1be2e1be1e9ab7cd503629ab784ee7385e5b
+    sha256: b73bf74928155b858cdb7045f6334246336cef604286cb361e695df26911ad18
+    verified_coverage:
+      first_match_date: 2023-01-02
+      last_match_date: 2023-11-10
+      verified_at_utc: 2026-08-30T08:10:00Z
+  - <<: *wta_source
+    source_id: sackmann-wta-2024
+    locator: https://raw.githubusercontent.com/VictorSquidWei/tennis_wta/85ef6efaa04ca860ed592a935498dcda9460ea91/wta_matches_2024.csv
+    object_identifier: 2d3d70f3c076df89be88183638dd86627cea9da9
+    sha256: d9bba2a0b3793f63c737ef62a809b82b56b3ad0ee94e1f95e78cecfac7615ed2
+    verified_coverage:
+      first_match_date: 2024-01-01
+      last_match_date: 2024-11-25
+      verified_at_utc: 2026-08-30T08:10:00Z
+  - <<: *wta_source
+    source_id: sackmann-wta-2025
+    locator: https://raw.githubusercontent.com/VictorSquidWei/tennis_wta/85ef6efaa04ca860ed592a935498dcda9460ea91/wta_matches_2025.csv
+    object_identifier: 0974267ae398dc988f0f8dbed546bece7c91dee1
+    sha256: e4eb002bc6d828b0bd21e04ed286e68722ddc8ccbbb27ea980bf62e938377f96
+    verified_coverage:
+      first_match_date: 2024-12-27
+      last_match_date: 2025-11-01
+      verified_at_utc: 2026-08-30T08:10:00Z
+coverage_by_tour:
+  atp:
+    first_match_date: 2017-01-02
+    last_match_date: 2025-12-17
+    verified_at_utc: 2026-08-30T08:10:00Z
+  wta:
+    first_match_date: 2017-01-02
+    last_match_date: 2025-11-01
+    verified_at_utc: 2026-08-30T08:10:00Z

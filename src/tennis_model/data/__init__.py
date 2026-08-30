@@ -1,0 +1,127 @@
+"""Historical-data provenance and ingestion foundations."""
+
+from tennis_model.data.artifacts import (
+    ProcessedArtifactBundle,
+    ProcessedArtifactError,
+    ProcessedArtifactIntegrityError,
+    load_processed_bundle,
+    read_processed_table,
+    verify_processed_bundle,
+    write_processed_bundle,
+)
+from tennis_model.data.component_counts import (
+    ComponentCountTable,
+    ComponentStatus,
+    build_serve_component_counts,
+)
+from tennis_model.data.current_usopen import (
+    CURRENT_USOPEN_NORMALIZATION_VERSION,
+    CurrentUSOpenRows,
+    OfficialJsonObject,
+    build_official_player_crosswalk,
+    normalize_completed_singles,
+)
+from tennis_model.data.cutoff import InformationCutoff
+from tennis_model.data.exact_date_crosswalk import (
+    EXACT_DATE_MATCHING_ALGORITHM_VERSION,
+    ExactDateCrosswalkManifest,
+    ExactDateCrosswalkResult,
+    ExactDateJoinStatus,
+    ExactDateSourcePin,
+    apply_exact_match_dates,
+    build_exact_date_crosswalk,
+)
+from tennis_model.data.historical_validation import (
+    HISTORICAL_VALIDATION_POLICY_VERSION,
+    POINT_IN_TIME_VINTAGE_POLICY,
+    HistoricalValidationDataMode,
+    HistoricalValidationPolicy,
+    assert_historical_training_safe,
+    crosswalk_set_sha256,
+    load_historical_validation_policy,
+    select_historical_training_rows,
+)
+from tennis_model.data.ingest_sackmann import (
+    SACKMANN_SCHEMA_VERSION,
+    HistoricalIngestionResult,
+    ingest_sackmann_snapshot,
+    read_sackmann_snapshot,
+)
+from tennis_model.data.normalize import (
+    NormalizedServiceRows,
+    normalize_player_service_rows,
+)
+from tennis_model.data.snapshot import (
+    SnapshotChecksumMismatch,
+    SnapshotError,
+    SnapshotIntegrityError,
+    materialize_snapshot,
+    open_verified_snapshot,
+    read_snapshot_bytes,
+    verified_snapshot_path,
+    verify_snapshot,
+)
+from tennis_model.data.source_manifest import (
+    SourceManifestError,
+    canonical_manifest_bytes,
+    canonical_source_bytes,
+    dump_source_manifest,
+    load_source_manifest,
+    manifest_sha256,
+    parse_source_manifest,
+)
+
+__all__ = [
+    "CURRENT_USOPEN_NORMALIZATION_VERSION",
+    "EXACT_DATE_MATCHING_ALGORITHM_VERSION",
+    "HISTORICAL_VALIDATION_POLICY_VERSION",
+    "POINT_IN_TIME_VINTAGE_POLICY",
+    "SACKMANN_SCHEMA_VERSION",
+    "ComponentCountTable",
+    "ComponentStatus",
+    "CurrentUSOpenRows",
+    "ExactDateCrosswalkManifest",
+    "ExactDateCrosswalkResult",
+    "ExactDateJoinStatus",
+    "ExactDateSourcePin",
+    "HistoricalIngestionResult",
+    "HistoricalValidationDataMode",
+    "HistoricalValidationPolicy",
+    "InformationCutoff",
+    "NormalizedServiceRows",
+    "OfficialJsonObject",
+    "ProcessedArtifactBundle",
+    "ProcessedArtifactError",
+    "ProcessedArtifactIntegrityError",
+    "SnapshotChecksumMismatch",
+    "SnapshotError",
+    "SnapshotIntegrityError",
+    "SourceManifestError",
+    "apply_exact_match_dates",
+    "assert_historical_training_safe",
+    "build_exact_date_crosswalk",
+    "build_official_player_crosswalk",
+    "build_serve_component_counts",
+    "canonical_manifest_bytes",
+    "canonical_source_bytes",
+    "crosswalk_set_sha256",
+    "dump_source_manifest",
+    "ingest_sackmann_snapshot",
+    "load_historical_validation_policy",
+    "load_processed_bundle",
+    "load_source_manifest",
+    "manifest_sha256",
+    "materialize_snapshot",
+    "normalize_completed_singles",
+    "normalize_player_service_rows",
+    "open_verified_snapshot",
+    "parse_source_manifest",
+    "read_processed_table",
+    "read_sackmann_snapshot",
+    "read_snapshot_bytes",
+    "select_historical_training_rows",
+    "verified_snapshot_path",
+    "verify_processed_bundle",
+    "verify_snapshot",
+    "write_processed_bundle",
+]
