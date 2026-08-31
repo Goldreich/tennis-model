@@ -1776,6 +1776,21 @@ def test_parameter_only_and_performance_only_uncertainty_are_separate(
     assert float(np.var(performance_draws, ddof=1)) == pytest.approx(expected_variance, rel=0.1)
 
 
+def test_matchup_sampling_does_not_revalidate_loaded_fits(
+    match_fixture: _MatchFixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def unexpected_revalidation(_fitted: FittedServeComponent) -> FittedServeComponent:
+        raise AssertionError("simulation hot path revalidated an already loaded fit")
+
+    monkeypatch.setattr(
+        "tennis_model.estimation.serve_components._revalidate_fit_for_prediction",
+        unexpected_revalidation,
+    )
+
+    sample_matchup_parameters(match_fixture.distribution, np.random.default_rng(441))
+
+
 def test_one_component_parameter_draw_is_replayed_for_both_directions(
     match_fixture: _MatchFixture,
 ) -> None:

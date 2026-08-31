@@ -55,10 +55,10 @@ from tennis_model.estimation.serve_components import (
     PlayerEffectCoordinateProjection,
     ServeComponent,
     ServePerformanceDistribution,
+    _project_validated_component_parameters,
     effect_block_player_contribution,
     predict_serve_performance,
     project_component_linear_coordinate,
-    project_component_parameters,
     project_player_effect_coordinate,
 )
 from tennis_model.estimation.snapshot import (
@@ -1982,12 +1982,12 @@ def sample_matchup_parameters(
             unseen_values = MappingProxyType({})
             c6_coordinates = ()
         try:
-            left_projection = project_component_parameters(
+            left_projection = _project_validated_component_parameters(
                 left.fit,
                 distribution.player_a_serving.context,
                 posterior.values,
             )
-            right_projection = project_component_parameters(
+            right_projection = _project_validated_component_parameters(
                 right.fit,
                 distribution.player_b_serving.context,
                 posterior.values,

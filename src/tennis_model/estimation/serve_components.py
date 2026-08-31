@@ -2245,6 +2245,21 @@ def project_component_parameters(
     """
 
     fitted = _revalidate_fit_for_prediction(fitted)
+    return _project_validated_component_parameters(fitted, context, parameters)
+
+
+def _project_validated_component_parameters(
+    fitted: FittedServeComponent,
+    context: FutureMatchContext,
+    parameters: Sequence[float],
+) -> ComponentParameterProjection:
+    """Project parameters from a fit already validated at an artifact boundary.
+
+    This internal path avoids serializing and rebuilding an immutable fitted
+    component for every simulated match path.  Callers must only pass fits that
+    have already crossed the normal artifact or bundle validation boundary.
+    """
+
     try:
         theta = np.asarray(tuple(parameters), dtype=np.float64)
     except (TypeError, ValueError) as exc:
