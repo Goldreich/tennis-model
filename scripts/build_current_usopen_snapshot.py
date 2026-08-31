@@ -192,15 +192,19 @@ def acquire_official_capture(raw_root: Path) -> Path:
     manifest_objects: dict[str, dict[str, Any]] = {}
     for key in sorted(objects):
         captured = objects[key]
-        suffix = ".json" if key not in {
-            "wta_pegula_record",
-            "wta_ruse_record",
-            "wta_pegula_latest_match",
-            "wta_ruse_latest_match",
-        } else ".html"
+        suffix = (
+            ".json"
+            if key
+            not in {
+                "wta_pegula_record",
+                "wta_ruse_record",
+                "wta_pegula_latest_match",
+                "wta_ruse_latest_match",
+            }
+            else ".html"
+        )
         manifest_objects[key] = {
-            name: captured[name]
-            for name in ("locator", "retrieved_at_utc", "sha256", "size_bytes")
+            name: captured[name] for name in ("locator", "retrieved_at_utc", "sha256", "size_bytes")
         }
         manifest_objects[key]["relative_path"] = f"objects/{key}{suffix}"
     manifest_payload = {
@@ -387,9 +391,7 @@ def _termination_inputs(rows: pd.DataFrame) -> tuple[HistoricalTerminationInput,
         players = tuple(match_rows["player_id"].astype(str))
         retirement = bool(first["retirement"])
         walkover = bool(first["walkover"])
-        orientations = dict(
-            zip(match_rows["orientation"].astype(str), players, strict=True)
-        )
+        orientations = dict(zip(match_rows["orientation"].astype(str), players, strict=True))
         winner_id: str | None = orientations.get("winner")
         retiree_id: str | None = orientations.get("loser") if retirement else None
         if winner_id is None:
@@ -535,8 +537,7 @@ def build(repo: Path, capture: Path, output_root: Path, deterministic_test_hash:
             ),
         )
         fits_by_tour[tour] = {
-            component: write_fit_artifact(fit, output / "fits")
-            for component, fit in fits.items()
+            component: write_fit_artifact(fit, output / "fits") for component, fit in fits.items()
         }
 
     classified = tuple(
@@ -570,9 +571,7 @@ def build(repo: Path, capture: Path, output_root: Path, deterministic_test_hash:
             code_sha256=code_hash,
             deterministic_test_result_sha256=deterministic_test_hash,
         )
-        persisted_retirement = write_retirement_fit_artifact(
-            retirement, output / "retirement_fits"
-        )
+        persisted_retirement = write_retirement_fit_artifact(retirement, output / "retirement_fits")
         retirement_artifacts[tour] = persisted_retirement
         inactivity_config = create_inactivity_configuration_artifact(
             config_sha256=config.sha256, code_sha256=code_hash
@@ -606,9 +605,7 @@ def build(repo: Path, capture: Path, output_root: Path, deterministic_test_hash:
         )
         for key in ("team1", "team2")
     )
-    target_map, target_crosswalk = build_official_player_crosswalk(
-        historical_rows, target_players
-    )
+    target_map, target_crosswalk = build_official_player_crosswalk(historical_rows, target_players)
     _write_frame(target_crosswalk, output / "lock/target_identity_crosswalk.parquet")
     pegula_id = target_map[(Tour.WTA, "wta316956")]
     ruse_id = target_map[(Tour.WTA, "wta320408")]
@@ -698,65 +695,78 @@ def build(repo: Path, capture: Path, output_root: Path, deterministic_test_hash:
     (output / "lock/canonical_match_identity.json").write_bytes(
         _canonical_bytes(canonical_match.model_dump(mode="json"))
     )
-    context = MatchContext(
-        player_a_id=pegula_id,
-        player_b_id=ruse_id,
-        tour=Tour.WTA,
-        event="US Open",
-        round="R128",
-        scheduled_start_utc=datetime.fromtimestamp(target_start, tz=UTC),
-        scheduled_start_local_date=date(2026, 8, 30),
-        best_of=3,
-        indoor=None,
-        information_cutoff_utc=cutoff,
-        information_scenario_id="central",
-    )
+    target_start_utc = datetime.fromtimestamp(target_start, tz=UTC)
     lock_attempt: dict[str, Any]
-    retrospective_policy = load_historical_validation_policy(
-        repo / "config/historical_validation_retrospective_finalized_v1.yaml"
-    )
-    try:
-        lock = create_prediction_lock(
-            snapshots[Tour.WTA],
-            context,
-            information,
-            (MATCH_WIN(pegula_id),),
-            CANONICAL_SETTLEMENT_POLICY,
-            source_manifest=source_manifest,
-            code=code,
-            seed=20260830,
-            n_paths=20,
-            execution_mode="test",
-            path_count_policy=PathCountPolicy(
-                standard_paths=20,
-                escalated_paths=40,
-                minimum_settled_paths=10,
-            ),
-            allow_dirty=True,
-            created_at_utc=datetime.now(UTC),
-            canonical_match_identity=canonical_match,
-            historical_validation_policy=retrospective_policy,
-        )
-    except LockCreationError as exc:
-        expected = "retrospective-finalized lock blocked: exact-date history is incomplete"
-        if str(exc) != expected:
-            raise RuntimeError(f"unexpected current lock failure: {exc}") from exc
+    if target_start_utc <= cutoff:
         lock_attempt = {
-            "status": "BLOCKED_AS_REQUIRED",
-            "error_type": type(exc).__name__,
-            "error": str(exc),
+            "status": "SKIPPED_CUTOFF_CLOSED",
+            "error": "legacy demonstration match started before the refreshed cutoff",
             "seed": 20260830,
             "requested_paths": 20,
             "snapshot_id": snapshots[Tour.WTA].snapshot_id,
-            "context": context.model_dump(mode="json"),
             "information_bundle_id": information.bundle_id,
+            "scheduled_start_utc": target_start_utc.isoformat(),
+            "information_cutoff_utc": cutoff.isoformat(),
         }
     else:
-        lock_attempt = {
-            "status": "CREATED",
-            "lock_id": lock.lock_id,
-            "snapshot_id": lock.model_snapshot_id,
-        }
+        context = MatchContext(
+            player_a_id=pegula_id,
+            player_b_id=ruse_id,
+            tour=Tour.WTA,
+            event="US Open",
+            round="R128",
+            scheduled_start_utc=target_start_utc,
+            scheduled_start_local_date=date(2026, 8, 30),
+            best_of=3,
+            indoor=None,
+            information_cutoff_utc=cutoff,
+            information_scenario_id="central",
+        )
+        retrospective_policy = load_historical_validation_policy(
+            repo / "config/historical_validation_retrospective_finalized_v1.yaml"
+        )
+        try:
+            lock = create_prediction_lock(
+                snapshots[Tour.WTA],
+                context,
+                information,
+                (MATCH_WIN(pegula_id),),
+                CANONICAL_SETTLEMENT_POLICY,
+                source_manifest=source_manifest,
+                code=code,
+                seed=20260830,
+                n_paths=20,
+                execution_mode="test",
+                path_count_policy=PathCountPolicy(
+                    standard_paths=20,
+                    escalated_paths=40,
+                    minimum_settled_paths=10,
+                ),
+                allow_dirty=True,
+                created_at_utc=datetime.now(UTC),
+                canonical_match_identity=canonical_match,
+                historical_validation_policy=retrospective_policy,
+            )
+        except LockCreationError as exc:
+            expected = "retrospective-finalized lock blocked: exact-date history is incomplete"
+            if str(exc) != expected:
+                raise RuntimeError(f"unexpected current lock failure: {exc}") from exc
+            lock_attempt = {
+                "status": "BLOCKED_AS_REQUIRED",
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+                "seed": 20260830,
+                "requested_paths": 20,
+                "snapshot_id": snapshots[Tour.WTA].snapshot_id,
+                "context": context.model_dump(mode="json"),
+                "information_bundle_id": information.bundle_id,
+            }
+        else:
+            lock_attempt = {
+                "status": "CREATED",
+                "lock_id": lock.lock_id,
+                "snapshot_id": lock.model_snapshot_id,
+            }
     (output / "lock/lock_attempt.json").write_bytes(_canonical_bytes(lock_attempt))
     report = {
         "schema_version": "current-usopen-snapshot-build/v1",
@@ -789,7 +799,7 @@ def build(repo: Path, capture: Path, output_root: Path, deterministic_test_hash:
         "target_lock": {
             "official_match_id": _TARGET_MATCH_ID,
             "canonical_match_id": canonical_match.canonical_match_id,
-            "scheduled_start_utc": datetime.fromtimestamp(target_start, tz=UTC).isoformat(),
+            "scheduled_start_utc": target_start_utc.isoformat(),
             "player_ids": [pegula_id, ruse_id],
             "c6_latest_dates": ["2026-08-23", "2026-08-15"],
             "status": lock_attempt["status"],
@@ -808,9 +818,17 @@ def main() -> None:
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--capture", type=Path)
     parser.add_argument("--acquire", action="store_true")
+    parser.add_argument("--acquire-only", action="store_true")
     parser.add_argument("--output-root", type=Path, default=Path("artifacts/current-usopen-2026"))
-    parser.add_argument("--deterministic-test-result-sha256", required=True)
+    parser.add_argument("--deterministic-test-result-sha256")
     args = parser.parse_args()
+    if args.acquire_only:
+        if not args.acquire or args.capture is not None:
+            parser.error("--acquire-only requires --acquire and forbids --capture")
+        print(acquire_official_capture(args.repo.resolve() / "data/raw"))
+        return
+    if args.deterministic_test_result_sha256 is None:
+        parser.error("--deterministic-test-result-sha256 is required when building")
     if len(args.deterministic_test_result_sha256) != 64 or any(
         char not in "0123456789abcdef" for char in args.deterministic_test_result_sha256
     ):
@@ -819,9 +837,7 @@ def main() -> None:
     if bool(args.capture) == bool(args.acquire):
         parser.error("choose exactly one of --capture or --acquire")
     capture = (
-        acquire_official_capture(repo / "data/raw")
-        if args.acquire
-        else args.capture.resolve()
+        acquire_official_capture(repo / "data/raw") if args.acquire else args.capture.resolve()
     )
     output = build(repo, capture, repo / args.output_root, args.deterministic_test_result_sha256)
     print(output)

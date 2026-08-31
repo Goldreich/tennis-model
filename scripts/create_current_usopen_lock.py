@@ -169,6 +169,7 @@ def _training_provenance(
     manifest: Any,
     snapshot: ModelSnapshot,
     retirement: Any,
+    run_id: str,
 ) -> HistoricalTrainingEligibilityProvenance:
     tour = snapshot.tour
     source_hashes, crosswalk_hashes = _evidence_hashes(repo, manifest, tour)
@@ -216,7 +217,7 @@ def _training_provenance(
     pin = SourceManifestProvenance.from_manifest(manifest)
     return HistoricalTrainingEligibilityProvenance(
         tour=tour,
-        assertion_id=f"current-exact-dated-fit-inputs-{_RUN_ID[:16]}-{tour.value.lower()}",
+        assertion_id=f"current-exact-dated-fit-inputs-{run_id[:16]}-{tour.value.lower()}",
         verified_at_utc=snapshot.data_cutoff_utc - timedelta(microseconds=1),
         all_included_rows_have_verified_exact_dates=True,
         historical_exact_date_coverage_complete=False,
@@ -238,9 +239,15 @@ def _retained_record(kind: str, path: Path) -> RetainedArtifactRecord:
     )
 
 
-def run(repo: Path) -> Path:
-    base = repo / "artifacts/current-usopen-2026" / _RUN_ID
-    operational = repo / "artifacts/live-usopen-2026/official-2117-v1"
+def run(
+    repo: Path,
+    *,
+    run_id: str = _RUN_ID,
+    operational_name: str = "official-2117-v1",
+    prepare_only: bool = False,
+) -> Path:
+    base = repo / "artifacts/current-usopen-2026" / run_id
+    operational = repo / "artifacts/live-usopen-2026" / operational_name
     retained = operational / "retained"
     report = json.loads((base / "build_report.json").read_bytes())
     manifest = load_source_manifest(base / "source_manifest.yaml")
@@ -259,7 +266,7 @@ def run(repo: Path) -> Path:
             original_snapshot.retirement_artifact.directory
         ).artifact
         provenance = _training_provenance(
-            repo, base, report, manifest, original_snapshot, original
+            repo, base, report, manifest, original_snapshot, original, run_id
         )
         b6_record = provenance.records[-1]
         coverage = RetirementSourceCoverage(
@@ -317,6 +324,23 @@ def run(repo: Path) -> Path:
             "weighted_player_starts": amended.tour_starts_n,
             "training_eligibility": provenance.model_dump(mode="json"),
         }
+
+    if prepare_only:
+        result_path = operational / "snapshot_preparation_report.json"
+        _write_immutable(
+            result_path,
+            _canonical_bytes(
+                {
+                    "schema_version": "current-operational-snapshot-preparation/v1",
+                    "base_run_id": run_id,
+                    "official_capture_id": report["official_capture_id"],
+                    "methodology_changed": False,
+                    "refit_performed": False,
+                    "artifact_amendments": amendment_report,
+                }
+            ),
+        )
+        return result_path
 
     snapshot = snapshots[Tour.WTA]
     provenance = eligibility[Tour.WTA]
@@ -430,8 +454,25 @@ def run(repo: Path) -> Path:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=Path, default=Path.cwd())
+    parser.add_argument("--run-id", default=_RUN_ID)
+    parser.add_argument("--operational-name", default="official-2117-v1")
+    parser.add_argument("--prepare-only", action="store_true")
     args = parser.parse_args()
-    print(run(args.repo.resolve()))
+    if len(args.run_id) != 64 or any(char not in "0123456789abcdef" for char in args.run_id):
+        parser.error("--run-id must be 64 lowercase hex characters")
+    if (
+        not args.operational_name.strip()
+        or Path(args.operational_name).name != args.operational_name
+    ):
+        parser.error("--operational-name must be one nonempty path component")
+    print(
+        run(
+            args.repo.resolve(),
+            run_id=args.run_id,
+            operational_name=args.operational_name,
+            prepare_only=args.prepare_only,
+        )
+    )
 
 
 if __name__ == "__main__":
