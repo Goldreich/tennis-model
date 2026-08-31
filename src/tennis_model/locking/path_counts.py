@@ -56,6 +56,11 @@ class PathCountPolicy:
 
 
 FROZEN_PATH_COUNT_POLICY = PathCountPolicy()
+FIXED_50K_V1_POLICY = PathCountPolicy(
+    standard_paths=50_000,
+    escalated_paths=50_000,
+    minimum_settled_paths=50_000,
+)
 
 
 class MCStoppingStatus(StrEnum):

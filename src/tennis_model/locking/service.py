@@ -55,6 +55,7 @@ from tennis_model.locking.models import (
 )
 from tennis_model.locking.path_counts import (
     ADAPTIVE_MC_CS_V1_POLICY,
+    FIXED_50K_V1_POLICY,
     AdaptiveMCPolicy,
     AdaptivePropDiagnostics,
     MCStoppingStatus,
@@ -392,7 +393,13 @@ def _path_count_record(
             beta_prior_b=policy.beta_prior_b,
         )
     return PathCountPolicyRecord(
-        version=("frozen-v1.0" if execution_mode == "production" else "explicit-development-test"),
+        version=(
+            "fixed-50k/v1"
+            if policy == FIXED_50K_V1_POLICY
+            else "frozen-v1.0"
+            if execution_mode == "production"
+            else "explicit-development-test"
+        ),
         standard_paths=policy.standard_paths,
         escalated_paths=policy.escalated_paths,
         minimum_settled_paths=policy.minimum_settled_paths,
@@ -573,7 +580,7 @@ def create_prediction_lock(
     first_server_id: str | None = None,
     trace_level: Literal["summary", "points"] = "summary",
     execution_mode: Literal["production", "development", "test"] = "production",
-    path_count_policy: PathCountPolicy | AdaptiveMCPolicy = ADAPTIVE_MC_CS_V1_POLICY,
+    path_count_policy: PathCountPolicy | AdaptiveMCPolicy = FIXED_50K_V1_POLICY,
     platform_submission_policy: PlatformSubmissionPolicy | None = None,
     allow_dirty: bool = False,
     created_at_utc: datetime | None = None,
@@ -638,8 +645,8 @@ def create_prediction_lock(
             "retrospective-finalized lock blocked: exact-date history is incomplete"
         )
     if execution_mode == "production":
-        if path_count_policy != ADAPTIVE_MC_CS_V1_POLICY:
-            raise LockCreationError("production locks require adaptive_mc_cs_v1")
+        if path_count_policy != FIXED_50K_V1_POLICY:
+            raise LockCreationError("production locks require fixed-50k/v1")
         if not snapshot.b6_c6_complete:
             raise LockCreationError(
                 "production lock blocked: snapshot lacks the required B6 retirement generator "
@@ -821,7 +828,11 @@ def create_prediction_lock(
         )
         reasons = escalation_reasons(estimates, path_count_policy)
         escalated = False
-        if requested == path_count_policy.standard_paths and reasons:
+        if (
+            requested == path_count_policy.standard_paths
+            and path_count_policy.escalated_paths > path_count_policy.standard_paths
+            and reasons
+        ):
             batch, estimates = _run(
                 distribution,
                 generated_props,

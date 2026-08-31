@@ -1,0 +1,25 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20260831014217
+Username: PENNYFEATHER\orgol
+RunAs User: PENNYFEATHER\orgol
+Configuration Name: 
+Machine: PENNYFEATHER (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\Users\orgol\OneDrive\Documents\Independent-Research\tennis-model\tmp\restore_day_one_snapshot.ps1
+Process ID: 52020
+PSVersion: 5.1.26100.9278
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.9278
+BuildVersion: 10.0.26100.9278
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+RESTORED C:\Users\orgol\AppData\Local\tm-usopen\artifacts\current-usopen-2026\2edefbc0b1c8522b241d2b8305fc10b3d473df13b23fc063c6391876fa3d3664\retirement_fits\atp\20260830T121353Z\e1320c41fee70190e2e4f52c99fd6d77\retirement-fit.json 0325BE9F7FE2B4A238E311A4BBB7C1F35AE63DB2C5A4515278021B5264F20AEF
+PS>$global:?
+True
+**********************
+Windows PowerShell transcript end
+End time: 20260831014218
+**********************

@@ -1148,6 +1148,7 @@ def _upgrade_snapshot(
 
 def build(
     repo: Path,
+    data_repo: Path,
     base_build: Path,
     output_root: Path,
     config_path: Path,
@@ -1157,6 +1158,7 @@ def build(
     benchmark_counts: tuple[int, int, int],
 ) -> Path:
     repo = repo.resolve()
+    data_repo = data_repo.resolve()
     base_build = base_build.resolve()
     base_report_path = base_build / "build_report.json"
     base_report = json.loads(base_report_path.read_text(encoding="utf-8"))
@@ -1175,9 +1177,9 @@ def build(
     if source_manifest_hash != base_report["source_manifest_sha256"]:
         raise RuntimeError("retained source manifest differs from base build report")
 
-    historical_audit = _historical_raw_audit(repo, source_manifest)
+    historical_audit = _historical_raw_audit(data_repo, source_manifest)
     batches, _combined, _bundles, fit_input_audit = _prepare_fit_inputs(
-        repo, base_build, cutoff, config
+        data_repo, base_build, cutoff, config
     )
     code = capture_code_provenance(repo)
     code_hash = code.diff_sha256 or hashlib.sha256(code.commit.encode("ascii")).hexdigest()
@@ -1396,6 +1398,12 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=Path, default=repo)
+    parser.add_argument(
+        "--data-repo",
+        type=Path,
+        default=repo,
+        help="Optional root containing staged data/raw and data/processed artifacts.",
+    )
     parser.add_argument("--base-build", type=Path, default=default_base)
     parser.add_argument(
         "--output-root",
@@ -1439,6 +1447,7 @@ def main() -> None:
     )
     build(
         args.repo,
+        args.data_repo,
         args.base_build,
         args.output_root,
         args.config,
