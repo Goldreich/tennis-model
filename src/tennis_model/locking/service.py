@@ -56,6 +56,7 @@ from tennis_model.locking.models import (
 from tennis_model.locking.path_counts import (
     ADAPTIVE_MC_CS_V1_POLICY,
     FIXED_50K_V1_POLICY,
+    FIXED_100K_V1_POLICY,
     AdaptiveMCPolicy,
     AdaptivePropDiagnostics,
     MCStoppingStatus,
@@ -394,7 +395,9 @@ def _path_count_record(
         )
     return PathCountPolicyRecord(
         version=(
-            "fixed-50k/v1"
+            "fixed-100k/v1"
+            if policy == FIXED_100K_V1_POLICY
+            else "fixed-50k/v1"
             if policy == FIXED_50K_V1_POLICY
             else "frozen-v1.0"
             if execution_mode == "production"
@@ -580,7 +583,7 @@ def create_prediction_lock(
     first_server_id: str | None = None,
     trace_level: Literal["summary", "points"] = "summary",
     execution_mode: Literal["production", "development", "test"] = "production",
-    path_count_policy: PathCountPolicy | AdaptiveMCPolicy = FIXED_50K_V1_POLICY,
+    path_count_policy: PathCountPolicy | AdaptiveMCPolicy = FIXED_100K_V1_POLICY,
     platform_submission_policy: PlatformSubmissionPolicy | None = None,
     allow_dirty: bool = False,
     created_at_utc: datetime | None = None,
@@ -645,8 +648,8 @@ def create_prediction_lock(
             "retrospective-finalized lock blocked: exact-date history is incomplete"
         )
     if execution_mode == "production":
-        if path_count_policy != FIXED_50K_V1_POLICY:
-            raise LockCreationError("production locks require fixed-50k/v1")
+        if path_count_policy not in (FIXED_50K_V1_POLICY, FIXED_100K_V1_POLICY):
+            raise LockCreationError("production locks require a versioned fixed-count policy")
         if not snapshot.b6_c6_complete:
             raise LockCreationError(
                 "production lock blocked: snapshot lacks the required B6 retirement generator "
@@ -927,7 +930,7 @@ def create_prediction_lock(
             item.stopping_status is MCStoppingStatus.INTEGER_BOUNDARY_SENSITIVE
             for item in adaptive_diagnostics
         ):
-            warnings.append("INTEGER_BOUNDARY_SENSITIVE_AT_70000_PATHS")
+            warnings.append("INTEGER_BOUNDARY_SENSITIVE_AT_100000_PATHS")
         if any(
             item.stopping_status is MCStoppingStatus.UNAVAILABLE
             for item in adaptive_diagnostics

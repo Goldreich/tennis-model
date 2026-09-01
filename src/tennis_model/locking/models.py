@@ -995,7 +995,13 @@ class AdaptiveMCPolicyRecord(LockModel):
 
 
 class PathCountPolicyRecord(LockModel):
-    version: Literal["frozen-v1.0", "fixed-50k/v1", "explicit-development-test"]
+    version: Literal[
+        "frozen-v1.0",
+        "fixed-50k/v1",
+        "fixed-70k/v1",
+        "fixed-100k/v1",
+        "explicit-development-test",
+    ]
     standard_paths: int = Field(gt=0)
     escalated_paths: int = Field(gt=0)
     minimum_settled_paths: int = Field(ge=0)

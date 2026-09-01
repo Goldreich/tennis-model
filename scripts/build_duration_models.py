@@ -437,6 +437,11 @@ def _select_exact_date_bundles(
         manifest = ProcessedArtifactManifest.model_validate_json(manifest_path.read_bytes())
         if manifest.information_cutoff_utc != cutoff:
             continue
+        if (
+            manifest.historical_validation_policy.exact_date_crosswalk_sha256
+            != _CROSSWALK_SET_SHA256
+        ):
+            continue
         bundle = load_processed_bundle(manifest_path.parent)
         if bundle.manifest.exact_date_crosswalk_manifest is None:
             raise RuntimeError(f"selected bundle lacks exact-date provenance: {bundle.directory}")
@@ -1432,11 +1437,23 @@ def _parser() -> argparse.ArgumentParser:
         metavar=("FIRST", "SECOND", "FINAL"),
         default=(1_000, 5_000, 100_000),
     )
+    parser.add_argument(
+        "--crosswalk-set-sha256",
+        default=_CROSSWALK_SET_SHA256,
+        help="Pinned aggregate exact-date crosswalk-set SHA-256.",
+    )
     return parser
 
 
 def main() -> None:
+    global _CROSSWALK_SET_SHA256
     args = _parser().parse_args()
+    if len(args.crosswalk_set_sha256) != 64 or any(
+        character not in "0123456789abcdef"
+        for character in args.crosswalk_set_sha256
+    ):
+        raise SystemExit("--crosswalk-set-sha256 must be 64 lowercase hex characters")
+    _CROSSWALK_SET_SHA256 = args.crosswalk_set_sha256
     counts = tuple(args.benchmark_counts)
     if len(counts) != 3 or any(value <= 0 for value in counts) or tuple(sorted(counts)) != counts:
         raise SystemExit("--benchmark-counts must be three strictly increasing positive integers")

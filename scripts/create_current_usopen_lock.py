@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import tempfile
 import zipfile
@@ -143,7 +144,12 @@ def _evidence_hashes(
         )
     }
     crosswalk_hashes: set[str] = set()
-    crosswalk_root = repo / "data/processed/retrospective-finalized-crosswalk-v1"
+    crosswalk_root = Path(
+        os.environ.get(
+            "TENNIS_MODEL_CROSSWALK_ROOT",
+            str(repo / "data/processed/retrospective-finalized-crosswalk-v1"),
+        )
+    )
     for year in range(2021, 2026):
         stem = f"{tour.value.lower()}_{year}"
         detail = crosswalk_root / f"crosswalk_{stem}.csv"
@@ -245,9 +251,11 @@ def run(
     run_id: str = _RUN_ID,
     operational_name: str = "official-2117-v1",
     prepare_only: bool = False,
+    artifact_root: Path | None = None,
 ) -> Path:
-    base = repo / "artifacts/current-usopen-2026" / run_id
-    operational = repo / "artifacts/live-usopen-2026" / operational_name
+    artifacts = repo / "artifacts" if artifact_root is None else artifact_root
+    base = artifacts / "current-usopen-2026" / run_id
+    operational = artifacts / "live-usopen-2026" / operational_name
     retained = operational / "retained"
     report = json.loads((base / "build_report.json").read_bytes())
     manifest = load_source_manifest(base / "source_manifest.yaml")
@@ -457,6 +465,7 @@ def main() -> None:
     parser.add_argument("--run-id", default=_RUN_ID)
     parser.add_argument("--operational-name", default="official-2117-v1")
     parser.add_argument("--prepare-only", action="store_true")
+    parser.add_argument("--artifact-root", type=Path)
     args = parser.parse_args()
     if len(args.run_id) != 64 or any(char not in "0123456789abcdef" for char in args.run_id):
         parser.error("--run-id must be 64 lowercase hex characters")
@@ -471,6 +480,7 @@ def main() -> None:
             run_id=args.run_id,
             operational_name=args.operational_name,
             prepare_only=args.prepare_only,
+            artifact_root=None if args.artifact_root is None else args.artifact_root.resolve(),
         )
     )
 

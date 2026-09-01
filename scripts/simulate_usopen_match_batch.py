@@ -21,7 +21,7 @@ spec = importlib.util.spec_from_file_location(
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
 from tennis_model.estimation.duration_model import UNRESOLVED_DURATION_DISPLAY_POLICY
-from tennis_model.locking import FIXED_50K_V1_POLICY, PathCountPolicy
+from tennis_model.locking import FIXED_100K_V1_POLICY, PathCountPolicy
 from tennis_model.props.settlement import ComparisonOperator
 from tennis_model.simulation import ACE_COMPARE, DF_COMPARE, DURATION_MIN, TIEBREAK_COUNT
 
@@ -37,6 +37,18 @@ parser.add_argument("--smoke-paths", type=int, default=5_000)
 parser.add_argument("--round", default="R128")
 parser.add_argument("--schedule-date", type=date.fromisoformat, required=True)
 parser.add_argument("--schedule-source-id", required=True)
+parser.add_argument(
+    "--match-win-side",
+    choices=("left", "right"),
+    default="left",
+)
+parser.add_argument(
+    "--comparison-side",
+    choices=("left", "right"),
+    default="right",
+)
+parser.add_argument("--duration-threshold", type=float, default=155.0)
+parser.add_argument("--tiebreak-threshold", type=int, default=2)
 parser.add_argument(
     "--artifact-root",
     type=Path,
@@ -73,8 +85,8 @@ if unknown_ids:
     parser.error(f"match IDs absent from fixture: {sorted(unknown_ids)}")
 selected_matches = tuple(item for item in mod.MATCHES if str(item["official_id"]) in requested_ids)
 if args.policy == "fixed":
-    path_policy = FIXED_50K_V1_POLICY
-    n_paths = 50_000
+    path_policy = FIXED_100K_V1_POLICY
+    n_paths = 100_000
     execution_mode = "production"
 else:
     path_policy = PathCountPolicy(
@@ -239,15 +251,19 @@ for item in selected_matches:
         start = local.astimezone(UTC)
     else:
         start = datetime.fromtimestamp(int(court["startEpoch"]), tz=UTC)
+    official_schedule_anchor = start
     if str(scheduled.get("statusCode")) != "B":
         raise RuntimeError(
             f"official match {official_id} is not unstarted at cutoff: "
             f"status={scheduled.get('statusCode')}"
         )
-    if cutoff >= start:
-        raise RuntimeError(
-            f"official match {official_id} cannot be locked after its schedule anchor"
-        )
+    # A court/session anchor is not the actual start of a later ordered match,
+    # and a delayed not-before match can also remain unstarted after its anchor.
+    # Official status B is the pre-start observation; retain the published anchor
+    # below while satisfying the lock schema with the tightest valid lower bound.
+    start_adjusted_from_status_b = cutoff >= start
+    if start_adjusted_from_status_b:
+        start = cutoff + timedelta(microseconds=1)
 
     context = mod.MatchContext(
         player_a_id=str(left["id"]),
@@ -268,6 +284,18 @@ for item in selected_matches:
                 value="not-before"
                 if scheduled.get("notBefore")
                 else "session-start; later ordered matches follow",
+            ),
+            mod.MatchCondition(
+                name="official_schedule_anchor_utc",
+                value=official_schedule_anchor.isoformat(),
+            ),
+            mod.MatchCondition(
+                name="scheduled_start_utc_semantics",
+                value=(
+                    "status-B pre-start lower bound"
+                    if start_adjusted_from_status_b
+                    else "official schedule anchor"
+                ),
             ),
         ),
         information_cutoff_utc=cutoff,
@@ -328,14 +356,17 @@ for item in selected_matches:
     if existing.exists():
         lock = store.load(canonical.base_lock_id, 1).lock
     else:
+        match_win_player = right if args.match_win_side == "right" else left
+        comparison_player = right if args.comparison_side == "right" else left
+        comparison_opponent = left if args.comparison_side == "right" else right
         requested_props = (
-            mod.MATCH_WIN(str(left["id"])),
-            ACE_COMPARE(str(right["id"]), str(left["id"])),
-            DF_COMPARE(str(right["id"]), str(left["id"])),
-            TIEBREAK_COUNT(ComparisonOperator.AT_LEAST, 2),
+            mod.MATCH_WIN(str(match_win_player["id"])),
+            ACE_COMPARE(str(comparison_player["id"]), str(comparison_opponent["id"])),
+            DF_COMPARE(str(comparison_player["id"]), str(comparison_opponent["id"])),
+            TIEBREAK_COUNT(ComparisonOperator.AT_LEAST, args.tiebreak_threshold),
             DURATION_MIN(
                 ComparisonOperator.MORE_THAN,
-                155,
+                args.duration_threshold,
                 display_conversion_version=UNRESOLVED_DURATION_DISPLAY_POLICY.policy_version,
             ),
         )
@@ -369,6 +400,8 @@ for item in selected_matches:
             "schedule_status_at_cutoff": scheduled["statusCode"],
             "court": court["courtName"],
             "scheduled_start_utc": start.isoformat(),
+            "official_schedule_anchor_utc": official_schedule_anchor.isoformat(),
+            "scheduled_start_adjusted_from_status_b": start_adjusted_from_status_b,
             "lock_id": lock.lock_id,
             "revision": lock.revision,
             "content_sha256": lock.content_sha256,
@@ -440,12 +473,12 @@ report = {
     "base_run_id": args.base_run_id,
     "operational_name": args.operational_name,
     "methodology_changed": True,
-    "execution_policy_version": "fixed-50k/v1" if args.policy == "fixed" else "fixed-smoke/v1",
+    "execution_policy_version": "fixed-100k/v1" if args.policy == "fixed" else "fixed-smoke/v1",
     "refit_performed": False,
     "execution_mode": execution_mode,
     "path_count_policy": mod.asdict(path_policy),
     "status": (
-        "FIXED_50K_PRODUCTION_LOCKS"
+        "FIXED_100K_PRODUCTION_LOCKS"
         if args.policy == "fixed"
         else "FIXED_CHECKPOINT_DEVELOPMENT_SMOKE_LOCKS"
     ),

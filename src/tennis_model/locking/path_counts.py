@@ -61,6 +61,11 @@ FIXED_50K_V1_POLICY = PathCountPolicy(
     escalated_paths=50_000,
     minimum_settled_paths=50_000,
 )
+FIXED_100K_V1_POLICY = PathCountPolicy(
+    standard_paths=100_000,
+    escalated_paths=100_000,
+    minimum_settled_paths=100_000,
+)
 
 
 class MCStoppingStatus(StrEnum):
@@ -348,7 +353,7 @@ def escalation_reasons(
         if probability > 1.0 - policy.extreme_probability:
             reasons.add("PROBABILITY_ABOVE_97_PERCENT")
         if estimate.settled_paths < policy.minimum_settled_paths:
-            reasons.add("FEWER_THAN_50000_SETTLED_PATHS")
+            reasons.add(f"FEWER_THAN_{policy.minimum_settled_paths}_SETTLED_PATHS")
         distance = _distance_to_rounding_boundary(probability)
         if (
             distance <= policy.integer_boundary_window

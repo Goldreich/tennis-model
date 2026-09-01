@@ -16,6 +16,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from enum import StrEnum
+from collections.abc import Mapping
 from typing import Any, Self
 
 import pandas as pd
@@ -25,6 +26,8 @@ from tennis_model.schemas import FrozenModel, Tour
 
 EXACT_DATE_CROSSWALK_SCHEMA_VERSION = "exact-match-date-crosswalk/v1"
 EXACT_DATE_MATCHING_ALGORITHM_VERSION = "sackmann-tennis-data-exact-date/v1"
+ALIASED_EXACT_DATE_CROSSWALK_SCHEMA_VERSION = "exact-match-date-crosswalk/v2"
+ALIASED_EXACT_DATE_MATCHING_ALGORITHM_VERSION = "sackmann-tennis-data-exact-date/v2"
 
 
 class ExactDateJoinStatus(StrEnum):
@@ -83,6 +86,7 @@ class ExactDateCrosswalkManifest(FrozenModel):
     status_counts: tuple[tuple[ExactDateJoinStatus, int], ...]
     detail_sha256: str
     complete_for_b6_c6_history: bool
+    sackmann_name_key_aliases: tuple[tuple[str, tuple[str, ...]], ...] = ()
 
     @field_validator("sackmann_source_sha256", "detail_sha256")
     @classmethod
@@ -94,17 +98,31 @@ class ExactDateCrosswalkManifest(FrozenModel):
 
     @model_validator(mode="after")
     def identity_and_counts_are_coherent(self) -> Self:
-        if self.schema_version != EXACT_DATE_CROSSWALK_SCHEMA_VERSION:
+        supported = {
+            EXACT_DATE_CROSSWALK_SCHEMA_VERSION: EXACT_DATE_MATCHING_ALGORITHM_VERSION,
+            ALIASED_EXACT_DATE_CROSSWALK_SCHEMA_VERSION: (
+                ALIASED_EXACT_DATE_MATCHING_ALGORITHM_VERSION
+            ),
+        }
+        if self.schema_version not in supported:
             raise ValueError("unsupported crosswalk schema version")
-        if self.algorithm_version != EXACT_DATE_MATCHING_ALGORITHM_VERSION:
+        if self.algorithm_version != supported[self.schema_version]:
             raise ValueError("unsupported exact-date matching algorithm")
+        if (
+            self.schema_version == EXACT_DATE_CROSSWALK_SCHEMA_VERSION
+            and self.sackmann_name_key_aliases
+        ):
+            raise ValueError("v1 crosswalks cannot declare name-key aliases")
         if self.matched_rows + self.residual_rows != self.source_rows:
             raise ValueError("crosswalk row counts do not reconcile")
         if sum(count for _, count in self.status_counts) != self.source_rows:
             raise ValueError("crosswalk status counts do not reconcile")
         if self.complete_for_b6_c6_history != (self.residual_rows == 0):
             raise ValueError("B6/C6 completeness must require zero residual rows")
-        payload = self.model_dump(mode="json", exclude={"crosswalk_id"})
+        excluded = {"crosswalk_id"}
+        if self.schema_version == EXACT_DATE_CROSSWALK_SCHEMA_VERSION:
+            excluded.add("sackmann_name_key_aliases")
+        payload = self.model_dump(mode="json", exclude=excluded)
         if self.crosswalk_id != _sha256_json(payload):
             raise ValueError("crosswalk ID does not match its content")
         return self
@@ -256,8 +274,28 @@ def build_exact_date_crosswalk(
     sackmann_source_id: str,
     sackmann_source_sha256: str,
     augmentation_source: ExactDateSourcePin,
+    sackmann_name_key_aliases: Mapping[str, tuple[str, ...]] | None = None,
+    algorithm_version: str = EXACT_DATE_MATCHING_ALGORITHM_VERSION,
 ) -> ExactDateCrosswalkResult:
     """Build a one-to-one, non-fuzzy exact-date crosswalk for one tour-year."""
+
+    if algorithm_version not in {
+        EXACT_DATE_MATCHING_ALGORITHM_VERSION,
+        ALIASED_EXACT_DATE_MATCHING_ALGORITHM_VERSION,
+    }:
+        raise ValueError("unsupported requested exact-date matching algorithm")
+    alias_items = tuple(
+        sorted(
+            (
+                str(name),
+                tuple(sorted(set(str(key) for key in keys))),
+            )
+            for name, keys in (sackmann_name_key_aliases or {}).items()
+        )
+    )
+    if algorithm_version == EXACT_DATE_MATCHING_ALGORITHM_VERSION and alias_items:
+        raise ValueError("name-key aliases require exact-date matching algorithm v2")
+    aliases = dict(alias_items)
 
     required_sackmann = {
         "winner_name",
@@ -303,6 +341,8 @@ def build_exact_date_crosswalk(
         source_row_number = int(row.get("_source_row_number", ordinal))
         winner_keys = _sackmann_name_keys(row["winner_name"])
         loser_keys = _sackmann_name_keys(row["loser_name"])
+        winner_keys.update(aliases.get(str(row["winner_name"]), ()))
+        loser_keys.update(aliases.get(str(row["loser_name"]), ()))
         candidate_ids: set[Any] = set()
         for winner_key in winner_keys:
             for loser_key in loser_keys:
@@ -408,9 +448,14 @@ def build_exact_date_crosswalk(
         status: int(detail["status"].eq(status.value).sum()) for status in ExactDateJoinStatus
     }
     matched_rows = counts[ExactDateJoinStatus.MATCHED]
+    schema_version = (
+        ALIASED_EXACT_DATE_CROSSWALK_SCHEMA_VERSION
+        if algorithm_version == ALIASED_EXACT_DATE_MATCHING_ALGORITHM_VERSION
+        else EXACT_DATE_CROSSWALK_SCHEMA_VERSION
+    )
     manifest_payload = {
-        "schema_version": EXACT_DATE_CROSSWALK_SCHEMA_VERSION,
-        "algorithm_version": EXACT_DATE_MATCHING_ALGORITHM_VERSION,
+        "schema_version": schema_version,
+        "algorithm_version": algorithm_version,
         "sackmann_source_id": sackmann_source_id,
         "sackmann_source_sha256": sackmann_source_sha256,
         "augmentation_source": augmentation_source.model_dump(mode="json"),
@@ -422,6 +467,8 @@ def build_exact_date_crosswalk(
         "detail_sha256": _detail_digest(detail),
         "complete_for_b6_c6_history": matched_rows == len(detail),
     }
+    if schema_version == ALIASED_EXACT_DATE_CROSSWALK_SCHEMA_VERSION:
+        manifest_payload["sackmann_name_key_aliases"] = alias_items
     manifest = ExactDateCrosswalkManifest.model_validate(
         {"crosswalk_id": _sha256_json(manifest_payload), **manifest_payload}
     )
@@ -458,6 +505,8 @@ def apply_exact_match_dates(
 
 
 __all__ = [
+    "ALIASED_EXACT_DATE_CROSSWALK_SCHEMA_VERSION",
+    "ALIASED_EXACT_DATE_MATCHING_ALGORITHM_VERSION",
     "EXACT_DATE_CROSSWALK_SCHEMA_VERSION",
     "EXACT_DATE_MATCHING_ALGORITHM_VERSION",
     "ExactDateCrosswalkManifest",

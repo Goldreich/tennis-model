@@ -32,6 +32,7 @@ from tennis_model.locking.models import (
 from tennis_model.locking.path_counts import (
     ADAPTIVE_MC_CS_V1_POLICY,
     FIXED_50K_V1_POLICY,
+    FIXED_100K_V1_POLICY,
     FROZEN_PATH_COUNT_POLICY,
     AdaptiveMCPolicy,
     BernoulliConfidenceSequence,
@@ -57,6 +58,7 @@ from tennis_model.locking.store import (
 __all__ = [
     "ADAPTIVE_MC_CS_V1_POLICY",
     "FIXED_50K_V1_POLICY",
+    "FIXED_100K_V1_POLICY",
     "CORE_CAPABILITY_BLOCKERS",
     "FROZEN_PATH_COUNT_POLICY",
     "LOCK_DURATION_SCHEMA_VERSION",

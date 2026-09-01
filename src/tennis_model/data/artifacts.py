@@ -181,6 +181,21 @@ def _manifest_bytes(manifest: ProcessedArtifactManifest) -> bytes:
     return _canonical_json_bytes(value)
 
 
+def _manifest_bytes_without_empty_v1_alias(
+    manifest: ProcessedArtifactManifest,
+) -> bytes | None:
+    value = manifest.model_dump(mode="json")
+    crosswalk = value.get("exact_date_crosswalk_manifest")
+    if not isinstance(crosswalk, dict):
+        return None
+    if crosswalk.get("schema_version") != "exact-match-date-crosswalk/v1":
+        return None
+    if crosswalk.get("sackmann_name_key_aliases") != []:
+        return None
+    crosswalk.pop("sackmann_name_key_aliases")
+    return _canonical_json_bytes(value)
+
+
 def _file_digest(path: Path) -> tuple[str, int]:
     digest = hashlib.sha256()
     size = 0
@@ -357,8 +372,13 @@ def load_processed_bundle(directory: str | Path) -> ProcessedArtifactBundle:
         ) from exc
     canonical = _manifest_bytes(manifest)
     if raw_manifest != canonical:
-        raise ProcessedArtifactIntegrityError("processed manifest is not canonical")
-    bundle_id = hashlib.sha256(canonical).hexdigest()
+        legacy_canonical = _manifest_bytes_without_empty_v1_alias(manifest)
+        if legacy_canonical is None or raw_manifest != legacy_canonical:
+            raise ProcessedArtifactIntegrityError(
+                f"processed manifest is not canonical: {manifest_path}"
+            )
+        canonical = legacy_canonical
+    bundle_id = hashlib.sha256(raw_manifest).hexdigest()
     if bundle_directory.name != bundle_id[:32]:
         raise ProcessedArtifactIntegrityError(
             f"processed bundle directory does not match manifest hash prefix {bundle_id[:32]}"

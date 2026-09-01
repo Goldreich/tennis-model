@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -287,12 +288,25 @@ def _prepare_historical(
     pd.DataFrame,
     dict[str, int],
 ]:
+    data_root = Path(
+        os.environ.get("TENNIS_MODEL_DATA_ROOT", str(repo / "data"))
+    )
     manifest = load_source_manifest(repo / "config/sources.yaml")
     policy = load_historical_validation_policy(
-        repo / "config/historical_validation_retrospective_finalized_v1.yaml"
+        Path(
+            os.environ.get(
+                "TENNIS_MODEL_HISTORICAL_VALIDATION_POLICY",
+                str(repo / "config/historical_validation_retrospective_finalized_v1.yaml"),
+            )
+        )
     )
-    crosswalk_root = repo / "data/processed/retrospective-finalized-crosswalk-v1"
-    bundle_root = repo / "data/processed/current-usopen-2026-exact-date"
+    crosswalk_root = Path(
+        os.environ.get(
+            "TENNIS_MODEL_CROSSWALK_ROOT",
+            str(repo / "data/processed/retrospective-finalized-crosswalk-v1"),
+        )
+    )
+    bundle_root = data_root / "processed/current-usopen-2026-exact-date"
     cutoff_record = InformationCutoff(at_utc=cutoff)
     bundles: dict[Tour, list[Any]] = {Tour.ATP: [], Tour.WTA: []}
     service_frames: list[pd.DataFrame] = []
@@ -303,7 +317,7 @@ def _prepare_historical(
         if year < 2021:
             continue
         result = ingest_sackmann_snapshot(
-            _raw_snapshot(source, repo / "data/raw"),
+            _raw_snapshot(source, data_root / "raw"),
             cutoff=cutoff_record,
             historical_validation_policy=policy,
             exact_date_crosswalk=_load_crosswalk(crosswalk_root, source.tour, year),
@@ -445,10 +459,22 @@ def _git_commit(repo: Path) -> str:
     ).stdout.strip()
 
 
-def build(repo: Path, capture: Path, output_root: Path, deterministic_test_hash: str) -> Path:
+def build(
+    repo: Path,
+    capture: Path,
+    output_root: Path,
+    deterministic_test_hash: str,
+    information_cutoff_utc: datetime | None = None,
+) -> Path:
     capture_manifest, official = _load_capture(capture)
     latest_retrieval = max(item.retrieved_at_utc for item in official.values())
-    cutoff = max(datetime.now(UTC), latest_retrieval + timedelta(microseconds=1))
+    cutoff = (
+        max(datetime.now(UTC), latest_retrieval + timedelta(microseconds=1))
+        if information_cutoff_utc is None
+        else information_cutoff_utc.astimezone(UTC)
+    )
+    if cutoff <= latest_retrieval:
+        raise RuntimeError("information cutoff must follow every retained source retrieval")
     historical_manifest, _bundles, historical_rows, historical_counts, date_exclusions = (
         _prepare_historical(repo, cutoff)
     )
@@ -821,6 +847,7 @@ def main() -> None:
     parser.add_argument("--acquire-only", action="store_true")
     parser.add_argument("--output-root", type=Path, default=Path("artifacts/current-usopen-2026"))
     parser.add_argument("--deterministic-test-result-sha256")
+    parser.add_argument("--information-cutoff-utc")
     args = parser.parse_args()
     if args.acquire_only:
         if not args.acquire or args.capture is not None:
@@ -839,7 +866,20 @@ def main() -> None:
     capture = (
         acquire_official_capture(repo / "data/raw") if args.acquire else args.capture.resolve()
     )
-    output = build(repo, capture, repo / args.output_root, args.deterministic_test_result_sha256)
+    explicit_cutoff = None
+    if args.information_cutoff_utc is not None:
+        explicit_cutoff = datetime.fromisoformat(
+            args.information_cutoff_utc.replace("Z", "+00:00")
+        )
+        if explicit_cutoff.tzinfo is None or explicit_cutoff.utcoffset() is None:
+            parser.error("--information-cutoff-utc must be timezone-aware")
+    output = build(
+        repo,
+        capture,
+        repo / args.output_root,
+        args.deterministic_test_result_sha256,
+        explicit_cutoff,
+    )
     print(output)
 
 
