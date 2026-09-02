@@ -1,0 +1,1276 @@
+﻿{
+    "generated_at_utc":  "2026-09-01T22:15:59.9694529Z",
+    "report_file_count":  8,
+    "read_failures":  [
+
+                      ],
+    "fixture_file_count":  53,
+    "player_id_to_name":  {
+                              "player_df5cad27-ab87-5c77-8f47-dabe5474aa12":  "Carlos Alcaraz",
+                              "player_c281a47a-6518-5b34-9111-918bf981a38e":  "Elise Mertens",
+                              "player_1bca19fb-02c8-5ae9-9227-0b8aca6ea28d":  "Rinky Hijikata",
+                              "player_d1b27a9c-4e1c-5ea8-a5b2-cef8606ca4e8":  "Andrea Guerrieri",
+                              "player_f558ac9f-a38f-5a60-b79d-e372de6d59ec":  "Matteo Arnaldi",
+                              "player_69056533-a633-55d7-9843-26f46fa78cee":  "Arthur Gea",
+                              "player_f0fafe7a-27b3-5cbd-916b-a5303caac86a":  "Otto Virtanen",
+                              "player_8b2dfeff-1ce4-5d9e-9682-fd0f8e943dde":  "Janice Tjen",
+                              "player_eee30210-223f-5cd1-9345-cee5ab7a6b0e":  "Shintaro Mochizuki",
+                              "player_21f127bc-2a0e-5a37-94f2-f59ed62d7f0c":  "Belinda Bencic",
+                              "player_b97a5f95-4205-58f3-96ca-c63411436250":  "Katie Boulter",
+                              "player_77c8ba46-13c6-5579-8289-9e952bc7a691":  "Ben Shelton",
+                              "player_4d31fa28-a508-5e47-a913-2746048fa5d3":  "Naomi Osaka",
+                              "player_f7814022-9817-5aa7-8564-e673526a77e2":  "Filip Misolic",
+                              "player_ac2945d1-9d98-5168-a7a9-10ec668fa201":  "Luciano Darderi",
+                              "player_daf63866-b4f8-5c38-a80a-7d98d09c1385":  "Robin Montgomery",
+                              "player_28675834-00fb-5dd2-a60d-9d8db6abc554":  "Anna Blinkova",
+                              "player_294e291c-1a34-568f-91ad-0069cde0675f":  "Elena Rybakina",
+                              "player_aa437963-64a1-5bc6-9697-37cf191a57e0":  "Carlos Taberner",
+                              "player_6cab23b9-a262-5ce9-93c1-e7833afa107a":  "Taylor Fritz",
+                              "player_43288c78-dbcc-56ec-8448-286e8a280403":  "Aryna Sabalenka",
+                              "player_461d89f4-73e2-5c29-82e4-ee7de7882d9c":  "Learner Tien",
+                              "player_1d0c0c39-237b-5be9-96a6-93b7948f3dfe":  "Juan Manuel Cerundolo",
+                              "player_25f14709-2052-5851-8de2-4fc2aa5977d2":  "Sebastian Baez",
+                              "player_5440f994-3b9b-562c-bac0-ffc96bdcaac9":  "Yannick Hanfmann",
+                              "player_79d52561-6ee7-565d-86e2-e789e665df04":  "Alexandra Eala",
+                              "player_9f589d17-7c2b-527f-8681-1facbaf65849":  "Magdalena Frech",
+                              "player_5a7a9c94-0cc7-599a-881d-dc6c7769c015":  "Tereza Valentova",
+                              "player_69d0b94e-abca-5a04-a02a-d92e9a64be1f":  "Jelena Ostapenko",
+                              "player_7ba8697e-0816-5e6e-b958-605b28de5933":  "Ignacio Buse",
+                              "player_e8b9d56e-901f-5d88-b1fc-55f4f6e625f8":  "Sara Bejlek",
+                              "player_7ceaa398-b46f-577a-a657-a3c076e2b69f":  "Julia Grabher",
+                              "player_d47ebb46-ab21-5a64-8c7b-d9a3b6d7d636":  "Camila Osorio",
+                              "player_66644b1c-5958-5c09-bc12-c67771ca11a8":  "Alex de Minaur",
+                              "player_c1093528-b82c-52e7-9f59-7ad74ef15d1c":  "Darwin Blanch",
+                              "player_f124482a-763f-530c-9ca2-68c038be639b":  "Jakub Mensik",
+                              "player_e00b1608-aeb9-5b1a-ab70-d990a7de2cf8":  "Sorana Cirstea",
+                              "player_5f099a16-72b3-5f8c-8cd2-39d78f83ff7f":  "Sinja Kraus",
+                              "player_50f3626c-e764-5005-83ed-db24fe5e8e41":  "Tallon Griekspoor",
+                              "player_72f48298-3469-51b1-999e-6ace673695ba":  "Rafael Jodar",
+                              "player_4a8fb24a-8608-5e76-8933-7ff15f477f88":  "Alexander Zverev",
+                              "player_ea3f8cb6-b983-53db-995e-5b8141ae6496":  "Thea Frodin",
+                              "player_fcab35cd-c91b-5623-bf43-8a9a4933abdb":  "Felix Auger-Aliassime",
+                              "player_0c312d2c-633a-5b7f-a9ec-11c67fbb0a27":  "Madison Keys",
+                              "player_26a9f984-fac0-5c6b-b14d-e894c8da20a3":  "Cristina Bucsa",
+                              "player_0fff6599-1fb8-56bb-8996-6744d5ded92b":  "Diana Shnaider",
+                              "player_e7d717a0-beda-58c5-aba2-99e6bd8232b0":  "Francisco Cerundolo",
+                              "player_66bfeb13-5fb2-50e8-b505-d679e62e8f85":  "Anastasia Zakharova",
+                              "player_ac8be520-0268-5fb4-9b81-1cb6616ffa06":  "Harry Wendelken",
+                              "player_a9454392-7fa6-5f67-a6b4-86f1d55a8438":  "Anastasia Potapova",
+                              "player_4761fadc-0f51-572a-9491-253522a07890":  "Thanasi Kokkinakis",
+                              "player_8e36685c-1397-5ec8-a3cb-eec7e73adf47":  "Valentin Vacherot",
+                              "player_0b714ccd-16ea-5950-9a2f-5fed169b9763":  "Yunchaokete Bu",
+                              "player_19fc7c07-a0f0-50ab-a67f-ffbd534d03f5":  "Aleksandar Kovacevic",
+                              "player_801c6423-e0b7-5d58-8ef0-4ce8b061003b":  "Ashlyn Krueger",
+                              "player_9b067d63-b518-552e-a096-9f73c43058a8":  "Antonia Ruzic",
+                              "player_50d26cca-b544-5c93-b8eb-61f5e4b67ee2":  "Brandon Nakashima",
+                              "player_a1f9be18-0888-5a60-8319-d0c02aa8e21e":  "Arthur Fery",
+                              "player_e5fb392e-1341-5032-9c5a-a1f0e7c3099e":  "Mary Stoiana",
+                              "player_ab1567fc-895e-5c65-ac91-3849224f0aeb":  "Iva Jovic",
+                              "player_46a0d5e2-1bea-5b0f-9ca8-d9686ada7736":  "Francisco Comesana",
+                              "player_614b4a3c-7777-548a-8747-5c21086a0b16":  "Nuno Borges",
+                              "player_2b5382aa-d6f4-5ecb-a3c2-afa7524dd90e":  "Zizou Bergs",
+                              "player_ad84ea61-9ba3-53b4-86bd-395303127dc6":  "Karolina Muchova",
+                              "player_daa73b95-d3d1-50dc-b0f6-135a9baf8fe9":  "Coco Gauff",
+                              "player_37f3b7ba-1648-54b8-9032-4a7282e14a8a":  "Stefanos Tsitsipas",
+                              "player_8d5c995c-0122-55f7-8f6b-d55b398606ea":  "Tatjana Maria",
+                              "player_bbb3142c-099d-5a2d-baa5-e5d4b053dbde":  "Lorenzo Musetti",
+                              "player_2546fd0b-f64e-5bde-be77-a7d0f63cb83d":  "Andrey Rublev",
+                              "player_ea4133c7-81e9-52a1-b83f-721b25b899ae":  "Marie Bouzkova",
+                              "player_d494a183-0414-58b0-bc68-fdea949b865a":  "Flavio Cobolli",
+                              "player_4f0fc189-678e-5dda-9fc1-8ee86830a805":  "Alexei Popyrin",
+                              "player_2de03d47-1996-5728-9fd2-81e4e169282c":  "Iga Swiatek",
+                              "player_618d16b8-902d-59c3-8a87-a18bae010b86":  "Arthur Fils",
+                              "player_9ce7491f-b373-5bb0-8a2c-373d9ffa5715":  "Linda Noskova",
+                              "player_ad718b8b-c4da-5778-9aaa-c4ec6ecd5877":  "Roman Safiullin",
+                              "player_72d1b94d-43a7-526f-93df-ff70f24a1e94":  "Katie Volynets",
+                              "player_0f4d8c09-0cb2-53f1-847f-522541cb9131":  "Darja Semenistaja",
+                              "player_3140722c-2ec8-5c4d-8046-cd00422a491f":  "Anna Kalinskaya",
+                              "player_afef1072-e466-5d27-af62-9b8174435c59":  "Kaitlin Quevedo",
+                              "player_9403311e-fbaf-51f1-8395-03ad26efd937":  "Alexander Blockx",
+                              "player_7964db64-8d38-5bff-936f-43e3dfa9f65c":  "Alejandro Tabilo",
+                              "player_b9109635-843e-50ff-91b4-d0a2545f97b8":  "Elsa Jacquemot",
+                              "player_16892af7-47cb-5adb-ae40-5d5617f870ec":  "Donna Vekic",
+                              "player_f3daabf9-7d11-53e4-b281-4f8b1823136f":  "Alex Michelsen",
+                              "player_39388992-7054-57bb-ae95-a40fb724b95c":  "Maria Sakkari",
+                              "player_b4fac4cf-5027-503e-b9b8-429c03ac2f4b":  "Lorenzo Sonego",
+                              "player_43b2ffa6-5b06-5b4b-9eb8-872481344f6d":  "Tomas Barrios Vera",
+                              "player_db5406ed-a5e2-5150-99c6-38d53f7db9e0":  "Amanda Anisimova",
+                              "player_4a8c4afe-f602-5774-8117-08bbc731c081":  "Mirra Andreeva",
+                              "player_f3a822f3-db4d-5a09-9574-78b1a86beffc":  "Xiyu Wang",
+                              "player_57aa18f6-0dca-5770-94b5-dfa248a2608a":  "James Duckworth",
+                              "player_e9da5605-4bbc-505f-96fa-4bddb010adb8":  "Maja Chwalinska",
+                              "player_df1c209c-a8a6-5c2b-a0d2-17020f0c9ae3":  "Alina Korneeva",
+                              "player_a8a165de-8db4-5da0-a3be-9428a2c95e00":  "Yulia Putintseva",
+                              "player_eb7315d9-e8c2-51c0-9ea7-6fc8fced8636":  "Ann Li",
+                              "player_0b2e4349-ed56-587a-82af-b5a733dbd9ef":  "Marcos Giron",
+                              "player_b2d464ee-22f8-5cc4-90b6-54a0b23e9426":  "Zeynep Sonmez",
+                              "player_344f0a2d-bc8e-5b62-a49f-dfbbe2853281":  "Taylor Townsend",
+                              "player_6e99f733-4297-581f-9e2f-886f46e24840":  "Daria Snigur",
+                              "player_ea14c4eb-acb8-5ab4-9fad-a9ed94b5a1de":  "Martin Damm",
+                              "player_4ced8d9b-d3ba-56d7-8098-17166dea551d":  "Marco Trungelliti",
+                              "player_d4c982f3-75c7-53c6-b595-27b6a72baa27":  "Frances Tiafoe"
+                          },
+    "rows":  [
+                 {
+                     "report_path":  "C:\\Users\\orgol\\OneDrive\\Documents\\Independent-Research\\tennis-model\\outputs\\blockx-trungelliti-fixed-100k-v2\\batch-report-676ba6598349fa45.json",
+                     "report_last_write_utc":  "2026-09-01T21:43:40.8243962Z",
+                     "schema_version":  "configured-usopen-match-batch/v1",
+                     "cutoff":  "2026-09-01T20:50:16.183925+00:00",
+                     "capture_id":  "676ba6598349fa459f475ae57cc08ed3632038611e29e1fc2e99d211a0087192",
+                     "execution_mode":  "production",
+                     "status":  "FIXED_100K_PRODUCTION_LOCKS",
+                     "policy":  "fixed-100k/v1",
+                     "operational_name":  "official-2117-duration-v1",
+                     "official_match_id":  "1215",
+                     "match":  "Alexander Blockx vs Marco Trungelliti",
+                     "tour":  "ATP",
+                     "paths":  100000,
+                     "lock_id":  "TMV1-ATP-92cfc50a0e57b4aab61a-L1",
+                     "content_sha256":  "7dea8f28df7580753506de2746c388796581d2516cc77e34e04e7a46b606fb43",
+                     "props":  [
+                                   {
+                                       "kind":  "MATCH_WIN",
+                                       "subjects":  [
+                                                        "player_9403311e-fbaf-51f1-8395-03ad26efd937"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "MATCH_WIN(player_9403311e-fbaf-51f1-8395-03ad26efd937)",
+                                       "probability_raw":  0.9416,
+                                       "submitted_integer":  94,
+                                       "yes_paths":  94160,
+                                       "no_paths":  5840,
+                                       "void_paths":  0,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  100000,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "ACE_COMPARE",
+                                       "subjects":  [
+                                                        "player_9403311e-fbaf-51f1-8395-03ad26efd937",
+                                                        "player_4ced8d9b-d3ba-56d7-8098-17166dea551d"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "ACE_COMPARE(player_9403311e-fbaf-51f1-8395-03ad26efd937,player_4ced8d9b-d3ba-56d7-8098-17166dea551d)",
+                                       "probability_raw":  0.8297793512267413,
+                                       "submitted_integer":  83,
+                                       "yes_paths":  80628,
+                                       "no_paths":  16540,
+                                       "void_paths":  2832,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  97168,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "DF_COMPARE",
+                                       "subjects":  [
+                                                        "player_9403311e-fbaf-51f1-8395-03ad26efd937",
+                                                        "player_4ced8d9b-d3ba-56d7-8098-17166dea551d"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "DF_COMPARE(player_9403311e-fbaf-51f1-8395-03ad26efd937,player_4ced8d9b-d3ba-56d7-8098-17166dea551d)",
+                                       "probability_raw":  0.20588053680223942,
+                                       "submitted_integer":  21,
+                                       "yes_paths":  20005,
+                                       "no_paths":  77163,
+                                       "void_paths":  2832,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  97168,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "TIEBREAK_COUNT",
+                                       "subjects":  [
+
+                                                    ],
+                                       "operator":  "\u003e=",
+                                       "threshold":  1.0,
+                                       "original_text":  "TIEBREAK_COUNT(\u003e=,1)",
+                                       "probability_raw":  0.2076032076032076,
+                                       "submitted_integer":  21,
+                                       "yes_paths":  20271,
+                                       "no_paths":  77372,
+                                       "void_paths":  2357,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  97643,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "DURATION_MIN",
+                                       "subjects":  [
+
+                                                    ],
+                                       "operator":  "\u003e",
+                                       "threshold":  125.0,
+                                       "original_text":  "DURATION_MIN(\u003e,125.0)",
+                                       "probability_raw":  0.1988105265320377,
+                                       "submitted_integer":  20,
+                                       "yes_paths":  19355,
+                                       "no_paths":  77999,
+                                       "void_paths":  2646,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  97354,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  "duration-display-nearest-half-up/v1"
+                                   }
+                               ],
+                     "players":  [
+                                     {
+                                         "expected_aces":  11.47045,
+                                         "expected_breaks":  6.31814,
+                                         "expected_double_faults":  2.03133,
+                                         "first_serve_win_expectation":  0.922070793233673,
+                                         "name":  "Alexander Blockx",
+                                         "retirement_probability":  0.01387
+                                     },
+                                     {
+                                         "expected_aces":  3.20602,
+                                         "expected_breaks":  0.67343,
+                                         "expected_double_faults":  6.35849,
+                                         "first_serve_win_expectation":  0.5551945200494434,
+                                         "name":  "Marco Trungelliti",
+                                         "retirement_probability":  0.01445
+                                     }
+                                 ],
+                     "match_win_probability":  {
+                                                   "Alexander Blockx":  0.9416,
+                                                   "Marco Trungelliti":  0.0584
+                                               },
+                     "warnings":  [
+                                      "DIRTY_CODE_TREE_RECORDED:bf3fbfff52ed21b5645d62434061f739b7b74e0584cf30ada6be841c0f7cad71",
+                                      "HISTORICAL_EXACT_DATE_COVERAGE_INCOMPLETE",
+                                      "UNKNOWN_INDOOR_ROOF_STATE",
+                                      "MISSING_CURRENT_CONDITION:roof state",
+                                      "SPARSE_PLAYER_COMPONENT_HISTORY"
+                                  ]
+                 },
+                 {
+                     "report_path":  "C:\\Users\\orgol\\OneDrive\\Documents\\Independent-Research\\tennis-model\\outputs\\boulter-muchova-fixed-100k-v2\\batch-report-676ba6598349fa45.json",
+                     "report_last_write_utc":  "2026-09-01T21:45:16.4535714Z",
+                     "schema_version":  "configured-usopen-match-batch/v1",
+                     "cutoff":  "2026-09-01T20:50:16.183925+00:00",
+                     "capture_id":  "676ba6598349fa459f475ae57cc08ed3632038611e29e1fc2e99d211a0087192",
+                     "execution_mode":  "production",
+                     "status":  "FIXED_100K_PRODUCTION_LOCKS",
+                     "policy":  "fixed-100k/v1",
+                     "operational_name":  "official-2117-duration-v1",
+                     "official_match_id":  "2216",
+                     "match":  "Katie Boulter vs Karolina Muchova",
+                     "tour":  "WTA",
+                     "paths":  100000,
+                     "lock_id":  "TMV1-WTA-e31287c370fb554f2aac-L1",
+                     "content_sha256":  "a294b7b660e7a75d29082999557d28b4880ca0580d1d565658acecf1d54d8081",
+                     "props":  [
+                                   {
+                                       "kind":  "MATCH_WIN",
+                                       "subjects":  [
+                                                        "player_b97a5f95-4205-58f3-96ca-c63411436250"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "MATCH_WIN(player_b97a5f95-4205-58f3-96ca-c63411436250)",
+                                       "probability_raw":  0.24815,
+                                       "submitted_integer":  25,
+                                       "yes_paths":  24815,
+                                       "no_paths":  75185,
+                                       "void_paths":  0,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  100000,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "ACE_COMPARE",
+                                       "subjects":  [
+                                                        "player_b97a5f95-4205-58f3-96ca-c63411436250",
+                                                        "player_ad84ea61-9ba3-53b4-86bd-395303127dc6"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "ACE_COMPARE(player_b97a5f95-4205-58f3-96ca-c63411436250,player_ad84ea61-9ba3-53b4-86bd-395303127dc6)",
+                                       "probability_raw":  0.0986657847686568,
+                                       "submitted_integer":  10,
+                                       "yes_paths":  9547,
+                                       "no_paths":  87214,
+                                       "void_paths":  3239,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  96761,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "DF_COMPARE",
+                                       "subjects":  [
+                                                        "player_b97a5f95-4205-58f3-96ca-c63411436250",
+                                                        "player_ad84ea61-9ba3-53b4-86bd-395303127dc6"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "DF_COMPARE(player_b97a5f95-4205-58f3-96ca-c63411436250,player_ad84ea61-9ba3-53b4-86bd-395303127dc6)",
+                                       "probability_raw":  0.8440384039023987,
+                                       "submitted_integer":  84,
+                                       "yes_paths":  81670,
+                                       "no_paths":  15091,
+                                       "void_paths":  3239,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  96761,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "TIEBREAK_COUNT",
+                                       "subjects":  [
+
+                                                    ],
+                                       "operator":  "\u003e=",
+                                       "threshold":  1.0,
+                                       "original_text":  "TIEBREAK_COUNT(\u003e=,1)",
+                                       "probability_raw":  0.339839855273572,
+                                       "submitted_integer":  34,
+                                       "yes_paths":  33062,
+                                       "no_paths":  64225,
+                                       "void_paths":  2713,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  97287,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "DURATION_MIN",
+                                       "subjects":  [
+
+                                                    ],
+                                       "operator":  "\u003e",
+                                       "threshold":  85.0,
+                                       "original_text":  "DURATION_MIN(\u003e,85.0)",
+                                       "probability_raw":  0.6363627032353424,
+                                       "submitted_integer":  64,
+                                       "yes_paths":  61997,
+                                       "no_paths":  35427,
+                                       "void_paths":  2576,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  97424,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  "duration-display-nearest-half-up/v1"
+                                   }
+                               ],
+                     "players":  [
+                                     {
+                                         "expected_aces":  1.97384,
+                                         "expected_breaks":  2.02942,
+                                         "expected_double_faults":  5.48577,
+                                         "first_serve_win_expectation":  0.6605127734564746,
+                                         "name":  "Katie Boulter",
+                                         "retirement_probability":  0.01544
+                                     },
+                                     {
+                                         "expected_aces":  5.24714,
+                                         "expected_breaks":  3.40937,
+                                         "expected_double_faults":  1.94125,
+                                         "first_serve_win_expectation":  0.7263247824579,
+                                         "name":  "Karolina Muchova",
+                                         "retirement_probability":  0.01695
+                                     }
+                                 ],
+                     "match_win_probability":  {
+                                                   "Karolina Muchova":  0.75185,
+                                                   "Katie Boulter":  0.24815
+                                               },
+                     "warnings":  [
+                                      "DIRTY_CODE_TREE_RECORDED:97477c9da8c60468730686c46f5d2f6a8170e62f44c84963b1d63990f9b52632",
+                                      "HISTORICAL_EXACT_DATE_COVERAGE_INCOMPLETE",
+                                      "UNKNOWN_INDOOR_ROOF_STATE",
+                                      "MISSING_CURRENT_CONDITION:roof state"
+                                  ]
+                 },
+                 {
+                     "report_path":  "C:\\Users\\orgol\\OneDrive\\Documents\\Independent-Research\\tennis-model\\outputs\\jodar-bu-fixed-100k-v4\\batch-report-bb95f2335b4e680b.json",
+                     "report_last_write_utc":  "2026-09-01T20:32:58.9278095Z",
+                     "schema_version":  "configured-usopen-match-batch/v1",
+                     "cutoff":  "2026-09-01T19:38:27.928642+00:00",
+                     "capture_id":  "bb95f2335b4e680b2794f798b674294694456886048f2b398f602e4ab402508b",
+                     "execution_mode":  "production",
+                     "status":  "FIXED_100K_PRODUCTION_LOCKS",
+                     "policy":  "fixed-100k/v1",
+                     "operational_name":  "official-osorio-frodin-jodar-nohistory-duration-v1",
+                     "official_match_id":  "1109",
+                     "match":  "Rafael Jodar vs Yunchaokete Bu",
+                     "tour":  "ATP",
+                     "paths":  100000,
+                     "lock_id":  "TMV1-ATP-c7835a68aec717b6f078-L1",
+                     "content_sha256":  "7ba5d5e80ebfa2af76d14e784173cb1069c55bae49b01007d5896792429693d1",
+                     "props":  [
+                                   {
+                                       "kind":  "MATCH_WIN",
+                                       "subjects":  [
+                                                        "player_0b714ccd-16ea-5950-9a2f-5fed169b9763"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "MATCH_WIN(player_0b714ccd-16ea-5950-9a2f-5fed169b9763)",
+                                       "probability_raw":  0.54563,
+                                       "submitted_integer":  55,
+                                       "yes_paths":  54563,
+                                       "no_paths":  45437,
+                                       "void_paths":  0,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  100000,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "ACE_COMPARE",
+                                       "subjects":  [
+                                                        "player_0b714ccd-16ea-5950-9a2f-5fed169b9763",
+                                                        "player_72f48298-3469-51b1-999e-6ace673695ba"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "ACE_COMPARE(player_0b714ccd-16ea-5950-9a2f-5fed169b9763,player_72f48298-3469-51b1-999e-6ace673695ba)",
+                                       "probability_raw":  0.5001554436361375,
+                                       "submitted_integer":  50,
+                                       "yes_paths":  48264,
+                                       "no_paths":  48234,
+                                       "void_paths":  3502,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  96498,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "DF_COMPARE",
+                                       "subjects":  [
+                                                        "player_0b714ccd-16ea-5950-9a2f-5fed169b9763",
+                                                        "player_72f48298-3469-51b1-999e-6ace673695ba"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "DF_COMPARE(player_0b714ccd-16ea-5950-9a2f-5fed169b9763,player_72f48298-3469-51b1-999e-6ace673695ba)",
+                                       "probability_raw":  0.5687889904453979,
+                                       "submitted_integer":  57,
+                                       "yes_paths":  54887,
+                                       "no_paths":  41611,
+                                       "void_paths":  3502,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  96498,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "TIEBREAK_COUNT",
+                                       "subjects":  [
+
+                                                    ],
+                                       "operator":  "\u003e=",
+                                       "threshold":  2.0,
+                                       "original_text":  "TIEBREAK_COUNT(\u003e=,2)",
+                                       "probability_raw":  0.24891491489427509,
+                                       "submitted_integer":  25,
+                                       "yes_paths":  24144,
+                                       "no_paths":  72853,
+                                       "void_paths":  3003,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  96997,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "DURATION_MIN",
+                                       "subjects":  [
+
+                                                    ],
+                                       "operator":  "\u003e",
+                                       "threshold":  155.0,
+                                       "original_text":  "DURATION_MIN(\u003e,155.0)",
+                                       "probability_raw":  0.2427444467510899,
+                                       "submitted_integer":  null,
+                                       "yes_paths":  23386,
+                                       "no_paths":  72954,
+                                       "void_paths":  3210,
+                                       "unresolved_paths":  450,
+                                       "settled_paths":  96340,
+                                       "total_paths":  100000,
+                                       "support_status":  "SETTLEMENT_BLOCKED",
+                                       "display_policy":  "duration-display-unresolved/v1"
+                                   }
+                               ],
+                     "players":  [
+                                     {
+                                         "expected_aces":  17.11748,
+                                         "expected_breaks":  3.97071,
+                                         "expected_double_faults":  9.8319,
+                                         "first_serve_win_expectation":  0.742589496257972,
+                                         "name":  "Rafael Jodar",
+                                         "retirement_probability":  0.01786
+                                     },
+                                     {
+                                         "expected_aces":  18.46743,
+                                         "expected_breaks":  5.20018,
+                                         "expected_double_faults":  5.18253,
+                                         "first_serve_win_expectation":  0.786889045082612,
+                                         "name":  "Yunchaokete Bu",
+                                         "retirement_probability":  0.01716
+                                     }
+                                 ],
+                     "match_win_probability":  {
+                                                   "Rafael Jodar":  0.45437,
+                                                   "Yunchaokete Bu":  0.54563
+                                               },
+                     "warnings":  [
+                                      "DIRTY_CODE_TREE_RECORDED:ab10d927c4f9bb3ff3f99ccd67314371648e87edbc52379baa51861a08cea9ab",
+                                      "HISTORICAL_EXACT_DATE_COVERAGE_INCOMPLETE",
+                                      "UNKNOWN_INDOOR_ROOF_STATE",
+                                      "DURATION_OFFICIAL_MINUTE_CONVERSION_BOUNDARY_SENSITIVE",
+                                      "MISSING_CURRENT_CONDITION:roof state",
+                                      "SPARSE_PLAYER_COMPONENT_HISTORY",
+                                      "POLICY_BLOCKED_PROP:PropSpec",
+                                      "PROP_SETTLEMENT_BLOCKED:DURATION_DISPLAY_POLICY_BOUNDARY_SENSITIVE"
+                                  ]
+                 },
+                 {
+                     "report_path":  "C:\\Users\\orgol\\OneDrive\\Documents\\Independent-Research\\tennis-model\\outputs\\li-vekic-fixed-100k-v2\\batch-report-676ba6598349fa45.json",
+                     "report_last_write_utc":  "2026-09-01T21:45:27.6553544Z",
+                     "schema_version":  "configured-usopen-match-batch/v1",
+                     "cutoff":  "2026-09-01T20:50:16.183925+00:00",
+                     "capture_id":  "676ba6598349fa459f475ae57cc08ed3632038611e29e1fc2e99d211a0087192",
+                     "execution_mode":  "production",
+                     "status":  "FIXED_100K_PRODUCTION_LOCKS",
+                     "policy":  "fixed-100k/v1",
+                     "operational_name":  "official-2117-duration-v1",
+                     "official_match_id":  "2207",
+                     "match":  "Ann Li vs Donna Vekic",
+                     "tour":  "WTA",
+                     "paths":  100000,
+                     "lock_id":  "TMV1-WTA-271f4b0536b58eb452d1-L1",
+                     "content_sha256":  "4b2715b77a5d2f46c9498cb24097e76b303dc87af40b22d46c860565a0e3606f",
+                     "props":  [
+                                   {
+                                       "kind":  "MATCH_WIN",
+                                       "subjects":  [
+                                                        "player_eb7315d9-e8c2-51c0-9ea7-6fc8fced8636"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "MATCH_WIN(player_eb7315d9-e8c2-51c0-9ea7-6fc8fced8636)",
+                                       "probability_raw":  0.64518,
+                                       "submitted_integer":  65,
+                                       "yes_paths":  64518,
+                                       "no_paths":  35482,
+                                       "void_paths":  0,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  100000,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "ACE_COMPARE",
+                                       "subjects":  [
+                                                        "player_eb7315d9-e8c2-51c0-9ea7-6fc8fced8636",
+                                                        "player_16892af7-47cb-5adb-ae40-5d5617f870ec"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "ACE_COMPARE(player_eb7315d9-e8c2-51c0-9ea7-6fc8fced8636,player_16892af7-47cb-5adb-ae40-5d5617f870ec)",
+                                       "probability_raw":  0.7127572688663836,
+                                       "submitted_integer":  71,
+                                       "yes_paths":  69816,
+                                       "no_paths":  28136,
+                                       "void_paths":  2048,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  97952,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "DF_COMPARE",
+                                       "subjects":  [
+                                                        "player_eb7315d9-e8c2-51c0-9ea7-6fc8fced8636",
+                                                        "player_16892af7-47cb-5adb-ae40-5d5617f870ec"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "DF_COMPARE(player_eb7315d9-e8c2-51c0-9ea7-6fc8fced8636,player_16892af7-47cb-5adb-ae40-5d5617f870ec)",
+                                       "probability_raw":  0.09477090819993467,
+                                       "submitted_integer":  9,
+                                       "yes_paths":  9283,
+                                       "no_paths":  88669,
+                                       "void_paths":  2048,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  97952,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "TIEBREAK_COUNT",
+                                       "subjects":  [
+
+                                                    ],
+                                       "operator":  "\u003e=",
+                                       "threshold":  1.0,
+                                       "original_text":  "TIEBREAK_COUNT(\u003e=,1)",
+                                       "probability_raw":  0.3369020964787299,
+                                       "submitted_integer":  34,
+                                       "yes_paths":  33104,
+                                       "no_paths":  65156,
+                                       "void_paths":  1740,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  98260,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "DURATION_MIN",
+                                       "subjects":  [
+
+                                                    ],
+                                       "operator":  "\u003e",
+                                       "threshold":  100.0,
+                                       "original_text":  "DURATION_MIN(\u003e,100.0)",
+                                       "probability_raw":  0.42977007514815796,
+                                       "submitted_integer":  43,
+                                       "yes_paths":  42206,
+                                       "no_paths":  56000,
+                                       "void_paths":  1794,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  98206,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  "duration-display-nearest-half-up/v1"
+                                   }
+                               ],
+                     "players":  [
+                                     {
+                                         "expected_aces":  5.42908,
+                                         "expected_breaks":  3.59314,
+                                         "expected_double_faults":  2.18682,
+                                         "first_serve_win_expectation":  0.7067233858385616,
+                                         "name":  "Ann Li",
+                                         "retirement_probability":  0.01037
+                                     },
+                                     {
+                                         "expected_aces":  2.98341,
+                                         "expected_breaks":  2.81579,
+                                         "expected_double_faults":  5.69737,
+                                         "first_serve_win_expectation":  0.6756513404644569,
+                                         "name":  "Donna Vekic",
+                                         "retirement_probability":  0.01011
+                                     }
+                                 ],
+                     "match_win_probability":  {
+                                                   "Ann Li":  0.64518,
+                                                   "Donna Vekic":  0.35482
+                                               },
+                     "warnings":  [
+                                      "DIRTY_CODE_TREE_RECORDED:bf3fbfff52ed21b5645d62434061f739b7b74e0584cf30ada6be841c0f7cad71",
+                                      "HISTORICAL_EXACT_DATE_COVERAGE_INCOMPLETE",
+                                      "UNKNOWN_INDOOR_ROOF_STATE",
+                                      "MISSING_CURRENT_CONDITION:roof state"
+                                  ]
+                 },
+                 {
+                     "report_path":  "C:\\Users\\orgol\\OneDrive\\Documents\\Independent-Research\\tennis-model\\outputs\\nakashima-michelsen-fixed-100k-v2\\batch-report-676ba6598349fa45.json",
+                     "report_last_write_utc":  "2026-09-01T21:48:07.7034342Z",
+                     "schema_version":  "configured-usopen-match-batch/v1",
+                     "cutoff":  "2026-09-01T20:50:16.183925+00:00",
+                     "capture_id":  "676ba6598349fa459f475ae57cc08ed3632038611e29e1fc2e99d211a0087192",
+                     "execution_mode":  "production",
+                     "status":  "FIXED_100K_PRODUCTION_LOCKS",
+                     "policy":  "fixed-100k/v1",
+                     "operational_name":  "official-2117-duration-v1",
+                     "official_match_id":  "1221",
+                     "match":  "Brandon Nakashima vs Alex Michelsen",
+                     "tour":  "ATP",
+                     "paths":  100000,
+                     "lock_id":  "TMV1-ATP-eda526d2f1d3894edcae-L1",
+                     "content_sha256":  "7a89c2b2cc4375928b87a025b161bfc5c9fc23c3f5af347bd5209e08e4adbd6a",
+                     "props":  [
+                                   {
+                                       "kind":  "MATCH_WIN",
+                                       "subjects":  [
+                                                        "player_f3daabf9-7d11-53e4-b281-4f8b1823136f"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "MATCH_WIN(player_f3daabf9-7d11-53e4-b281-4f8b1823136f)",
+                                       "probability_raw":  0.43397,
+                                       "submitted_integer":  43,
+                                       "yes_paths":  43397,
+                                       "no_paths":  56603,
+                                       "void_paths":  0,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  100000,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "ACE_COMPARE",
+                                       "subjects":  [
+                                                        "player_f3daabf9-7d11-53e4-b281-4f8b1823136f",
+                                                        "player_50d26cca-b544-5c93-b8eb-61f5e4b67ee2"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "ACE_COMPARE(player_f3daabf9-7d11-53e4-b281-4f8b1823136f,player_50d26cca-b544-5c93-b8eb-61f5e4b67ee2)",
+                                       "probability_raw":  0.18609248219903957,
+                                       "submitted_integer":  19,
+                                       "yes_paths":  17981,
+                                       "no_paths":  78643,
+                                       "void_paths":  3376,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  96624,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "DF_COMPARE",
+                                       "subjects":  [
+                                                        "player_f3daabf9-7d11-53e4-b281-4f8b1823136f",
+                                                        "player_50d26cca-b544-5c93-b8eb-61f5e4b67ee2"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "DF_COMPARE(player_f3daabf9-7d11-53e4-b281-4f8b1823136f,player_50d26cca-b544-5c93-b8eb-61f5e4b67ee2)",
+                                       "probability_raw":  0.7727893691008445,
+                                       "submitted_integer":  77,
+                                       "yes_paths":  74670,
+                                       "no_paths":  21954,
+                                       "void_paths":  3376,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  96624,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "TIEBREAK_COUNT",
+                                       "subjects":  [
+
+                                                    ],
+                                       "operator":  "\u003e=",
+                                       "threshold":  2.0,
+                                       "original_text":  "TIEBREAK_COUNT(\u003e=,2)",
+                                       "probability_raw":  0.27844589298238376,
+                                       "submitted_integer":  28,
+                                       "yes_paths":  26997,
+                                       "no_paths":  69959,
+                                       "void_paths":  3044,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  96956,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "DURATION_MIN",
+                                       "subjects":  [
+
+                                                    ],
+                                       "operator":  "\u003e",
+                                       "threshold":  185.0,
+                                       "original_text":  "DURATION_MIN(\u003e,185.0)",
+                                       "probability_raw":  0.42071918691637,
+                                       "submitted_integer":  42,
+                                       "yes_paths":  40774,
+                                       "no_paths":  56141,
+                                       "void_paths":  3085,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  96915,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  "duration-display-nearest-half-up/v1"
+                                   }
+                               ],
+                     "players":  [
+                                     {
+                                         "expected_aces":  12.95918,
+                                         "expected_breaks":  3.89167,
+                                         "expected_double_faults":  1.59626,
+                                         "first_serve_win_expectation":  0.7398043522854326,
+                                         "name":  "Brandon Nakashima",
+                                         "retirement_probability":  0.01236
+                                     },
+                                     {
+                                         "expected_aces":  8.3405,
+                                         "expected_breaks":  3.53366,
+                                         "expected_double_faults":  4.17759,
+                                         "first_serve_win_expectation":  0.7059207898978579,
+                                         "name":  "Alex Michelsen",
+                                         "retirement_probability":  0.0214
+                                     }
+                                 ],
+                     "match_win_probability":  {
+                                                   "Alex Michelsen":  0.43397,
+                                                   "Brandon Nakashima":  0.56603
+                                               },
+                     "warnings":  [
+                                      "DIRTY_CODE_TREE_RECORDED:bf3fbfff52ed21b5645d62434061f739b7b74e0584cf30ada6be841c0f7cad71",
+                                      "HISTORICAL_EXACT_DATE_COVERAGE_INCOMPLETE",
+                                      "UNKNOWN_INDOOR_ROOF_STATE",
+                                      "MISSING_CURRENT_CONDITION:roof state"
+                                  ]
+                 },
+                 {
+                     "report_path":  "C:\\Users\\orgol\\OneDrive\\Documents\\Independent-Research\\tennis-model\\outputs\\popyrin-tabilo-fixed-100k-v2\\batch-report-676ba6598349fa45.json",
+                     "report_last_write_utc":  "2026-09-01T21:48:05.4725147Z",
+                     "schema_version":  "configured-usopen-match-batch/v1",
+                     "cutoff":  "2026-09-01T20:50:16.183925+00:00",
+                     "capture_id":  "676ba6598349fa459f475ae57cc08ed3632038611e29e1fc2e99d211a0087192",
+                     "execution_mode":  "production",
+                     "status":  "FIXED_100K_PRODUCTION_LOCKS",
+                     "policy":  "fixed-100k/v1",
+                     "operational_name":  "official-2117-duration-v1",
+                     "official_match_id":  "1202",
+                     "match":  "Alexei Popyrin vs Alejandro Tabilo",
+                     "tour":  "ATP",
+                     "paths":  100000,
+                     "lock_id":  "TMV1-ATP-0715e522850609c5de8a-L1",
+                     "content_sha256":  "2085af978af4215c252a2fe14c7bdaf6509401c4bc9beeda39cc74dc7fbc03eb",
+                     "props":  [
+                                   {
+                                       "kind":  "MATCH_WIN",
+                                       "subjects":  [
+                                                        "player_4f0fc189-678e-5dda-9fc1-8ee86830a805"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "MATCH_WIN(player_4f0fc189-678e-5dda-9fc1-8ee86830a805)",
+                                       "probability_raw":  0.55822,
+                                       "submitted_integer":  56,
+                                       "yes_paths":  55822,
+                                       "no_paths":  44178,
+                                       "void_paths":  0,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  100000,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "ACE_COMPARE",
+                                       "subjects":  [
+                                                        "player_4f0fc189-678e-5dda-9fc1-8ee86830a805",
+                                                        "player_7964db64-8d38-5bff-936f-43e3dfa9f65c"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "ACE_COMPARE(player_4f0fc189-678e-5dda-9fc1-8ee86830a805,player_7964db64-8d38-5bff-936f-43e3dfa9f65c)",
+                                       "probability_raw":  0.8869881785932215,
+                                       "submitted_integer":  89,
+                                       "yes_paths":  85762,
+                                       "no_paths":  10927,
+                                       "void_paths":  3311,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  96689,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "DF_COMPARE",
+                                       "subjects":  [
+                                                        "player_4f0fc189-678e-5dda-9fc1-8ee86830a805",
+                                                        "player_7964db64-8d38-5bff-936f-43e3dfa9f65c"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "DF_COMPARE(player_4f0fc189-678e-5dda-9fc1-8ee86830a805,player_7964db64-8d38-5bff-936f-43e3dfa9f65c)",
+                                       "probability_raw":  0.6272171601733393,
+                                       "submitted_integer":  63,
+                                       "yes_paths":  60645,
+                                       "no_paths":  36044,
+                                       "void_paths":  3311,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  96689,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "TIEBREAK_COUNT",
+                                       "subjects":  [
+
+                                                    ],
+                                       "operator":  "\u003e=",
+                                       "threshold":  2.0,
+                                       "original_text":  "TIEBREAK_COUNT(\u003e=,2)",
+                                       "probability_raw":  0.32493793586534403,
+                                       "submitted_integer":  32,
+                                       "yes_paths":  31544,
+                                       "no_paths":  65533,
+                                       "void_paths":  2923,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  97077,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "DURATION_MIN",
+                                       "subjects":  [
+
+                                                    ],
+                                       "operator":  "\u003e",
+                                       "threshold":  165.0,
+                                       "original_text":  "DURATION_MIN(\u003e,165.0)",
+                                       "probability_raw":  0.5277077178064423,
+                                       "submitted_integer":  53,
+                                       "yes_paths":  51261,
+                                       "no_paths":  45878,
+                                       "void_paths":  2861,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  97139,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  "duration-display-nearest-half-up/v1"
+                                   }
+                               ],
+                     "players":  [
+                                     {
+                                         "expected_aces":  21.61959,
+                                         "expected_breaks":  3.36172,
+                                         "expected_double_faults":  4.85047,
+                                         "first_serve_win_expectation":  0.7904103282732501,
+                                         "name":  "Alexei Popyrin",
+                                         "retirement_probability":  0.01447
+                                     },
+                                     {
+                                         "expected_aces":  12.11997,
+                                         "expected_breaks":  2.97078,
+                                         "expected_double_faults":  3.22912,
+                                         "first_serve_win_expectation":  0.7273924140986435,
+                                         "name":  "Alejandro Tabilo",
+                                         "retirement_probability":  0.01864
+                                     }
+                                 ],
+                     "match_win_probability":  {
+                                                   "Alejandro Tabilo":  0.44178,
+                                                   "Alexei Popyrin":  0.55822
+                                               },
+                     "warnings":  [
+                                      "DIRTY_CODE_TREE_RECORDED:bf3fbfff52ed21b5645d62434061f739b7b74e0584cf30ada6be841c0f7cad71",
+                                      "HISTORICAL_EXACT_DATE_COVERAGE_INCOMPLETE",
+                                      "UNKNOWN_INDOOR_ROOF_STATE",
+                                      "MISSING_CURRENT_CONDITION:roof state"
+                                  ]
+                 },
+                 {
+                     "report_path":  "C:\\Users\\orgol\\OneDrive\\Documents\\Independent-Research\\tennis-model\\outputs\\potapova-semenistaja-fixed-100k-v1\\batch-report-9181145d0ef88a27.json",
+                     "report_last_write_utc":  "2026-09-01T20:25:51.4239118Z",
+                     "schema_version":  "configured-usopen-match-batch/v1",
+                     "cutoff":  "2026-09-01T19:38:27.928754+00:00",
+                     "capture_id":  "9181145d0ef88a279cc56ed6decf0e4bc62621086d4e23225455cbb907316d31",
+                     "execution_mode":  "production",
+                     "status":  "FIXED_100K_PRODUCTION_LOCKS",
+                     "policy":  "fixed-100k/v1",
+                     "operational_name":  "official-2117-duration-v1",
+                     "official_match_id":  "2137",
+                     "match":  "Anastasia Potapova vs Darja Semenistaja",
+                     "tour":  "WTA",
+                     "paths":  100000,
+                     "lock_id":  "TMV1-WTA-210fc1f9ca2b002f6416-L1",
+                     "content_sha256":  "89221b1fa4c47957aef194e75a772714ef4fee08463cd6ee61fd44f1e43ed6b5",
+                     "props":  [
+                                   {
+                                       "kind":  "MATCH_WIN",
+                                       "subjects":  [
+                                                        "player_a9454392-7fa6-5f67-a6b4-86f1d55a8438"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "MATCH_WIN(player_a9454392-7fa6-5f67-a6b4-86f1d55a8438)",
+                                       "probability_raw":  0.82687,
+                                       "submitted_integer":  83,
+                                       "yes_paths":  82687,
+                                       "no_paths":  17313,
+                                       "void_paths":  0,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  100000,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "ACE_COMPARE",
+                                       "subjects":  [
+                                                        "player_a9454392-7fa6-5f67-a6b4-86f1d55a8438",
+                                                        "player_0f4d8c09-0cb2-53f1-847f-522541cb9131"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "ACE_COMPARE(player_a9454392-7fa6-5f67-a6b4-86f1d55a8438,player_0f4d8c09-0cb2-53f1-847f-522541cb9131)",
+                                       "probability_raw":  0.8451602975121826,
+                                       "submitted_integer":  85,
+                                       "yes_paths":  82382,
+                                       "no_paths":  15093,
+                                       "void_paths":  2525,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  97475,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "DF_COMPARE",
+                                       "subjects":  [
+                                                        "player_a9454392-7fa6-5f67-a6b4-86f1d55a8438",
+                                                        "player_0f4d8c09-0cb2-53f1-847f-522541cb9131"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "DF_COMPARE(player_a9454392-7fa6-5f67-a6b4-86f1d55a8438,player_0f4d8c09-0cb2-53f1-847f-522541cb9131)",
+                                       "probability_raw":  0.7799948704796101,
+                                       "submitted_integer":  78,
+                                       "yes_paths":  76030,
+                                       "no_paths":  21445,
+                                       "void_paths":  2525,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  97475,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "TIEBREAK_COUNT",
+                                       "subjects":  [
+
+                                                    ],
+                                       "operator":  "\u003e=",
+                                       "threshold":  1.0,
+                                       "original_text":  "TIEBREAK_COUNT(\u003e=,1)",
+                                       "probability_raw":  0.1850945791025221,
+                                       "submitted_integer":  19,
+                                       "yes_paths":  18083,
+                                       "no_paths":  79613,
+                                       "void_paths":  2304,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  97696,
+                                       "total_paths":  100000,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "DURATION_MIN",
+                                       "subjects":  [
+
+                                                    ],
+                                       "operator":  "\u003e",
+                                       "threshold":  85.0,
+                                       "original_text":  "DURATION_MIN(\u003e,85.0)",
+                                       "probability_raw":  0.37019956571192225,
+                                       "submitted_integer":  null,
+                                       "yes_paths":  35802,
+                                       "no_paths":  60908,
+                                       "void_paths":  2238,
+                                       "unresolved_paths":  1052,
+                                       "settled_paths":  96710,
+                                       "total_paths":  100000,
+                                       "support_status":  "SETTLEMENT_BLOCKED",
+                                       "display_policy":  "duration-display-unresolved/v1"
+                                   }
+                               ],
+                     "players":  [
+                                     {
+                                         "expected_aces":  5.44601,
+                                         "expected_breaks":  5.17446,
+                                         "expected_double_faults":  3.79644,
+                                         "first_serve_win_expectation":  0.7205920117985628,
+                                         "name":  "Anastasia Potapova",
+                                         "retirement_probability":  0.01446
+                                     },
+                                     {
+                                         "expected_aces":  1.46569,
+                                         "expected_breaks":  2.70205,
+                                         "expected_double_faults":  1.21448,
+                                         "first_serve_win_expectation":  0.4783310721937101,
+                                         "name":  "Darja Semenistaja",
+                                         "retirement_probability":  0.01079
+                                     }
+                                 ],
+                     "match_win_probability":  {
+                                                   "Anastasia Potapova":  0.82687,
+                                                   "Darja Semenistaja":  0.17313
+                                               },
+                     "warnings":  [
+                                      "DIRTY_CODE_TREE_RECORDED:bb23e0a185ea66d15766f3a0e27bb8adba49d9154dbe62b9f5fba68fb702670d",
+                                      "HISTORICAL_EXACT_DATE_COVERAGE_INCOMPLETE",
+                                      "UNKNOWN_INDOOR_ROOF_STATE",
+                                      "DURATION_OFFICIAL_MINUTE_CONVERSION_BOUNDARY_SENSITIVE",
+                                      "MISSING_CURRENT_CONDITION:roof state",
+                                      "SPARSE_PLAYER_COMPONENT_HISTORY",
+                                      "POLICY_BLOCKED_PROP:PropSpec",
+                                      "PROP_SETTLEMENT_BLOCKED:DURATION_DISPLAY_POLICY_BOUNDARY_SENSITIVE"
+                                  ]
+                 },
+                 {
+                     "report_path":  "C:\\Users\\orgol\\OneDrive\\Documents\\Independent-Research\\tennis-model\\outputs\\round-two-five-source-smoke-v1\\batch-report-676ba6598349fa45.json",
+                     "report_last_write_utc":  "2026-09-01T20:50:38.3884819Z",
+                     "schema_version":  "configured-usopen-match-batch/v1",
+                     "cutoff":  "2026-09-01T20:50:16.232366+00:00",
+                     "capture_id":  "676ba6598349fa459f475ae57cc08ed3632038611e29e1fc2e99d211a0087192",
+                     "execution_mode":  "development",
+                     "status":  "FIXED_CHECKPOINT_DEVELOPMENT_SMOKE_LOCKS",
+                     "policy":  "fixed-smoke/v1",
+                     "operational_name":  "official-2117-duration-v1",
+                     "official_match_id":  "2207",
+                     "match":  "Ann Li vs Donna Vekic",
+                     "tour":  "WTA",
+                     "paths":  1,
+                     "lock_id":  "TMV1-WTA-271f4b0536b58eb452d1-L1",
+                     "content_sha256":  "6a170bbed755b7bd93ca02bf7b72cbcb996e466aa0d63b59efcdba72487abeec",
+                     "props":  [
+                                   {
+                                       "kind":  "MATCH_WIN",
+                                       "subjects":  [
+                                                        "player_eb7315d9-e8c2-51c0-9ea7-6fc8fced8636"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "MATCH_WIN(player_eb7315d9-e8c2-51c0-9ea7-6fc8fced8636)",
+                                       "probability_raw":  0.0,
+                                       "submitted_integer":  1,
+                                       "yes_paths":  0,
+                                       "no_paths":  1,
+                                       "void_paths":  0,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  1,
+                                       "total_paths":  1,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "ACE_COMPARE",
+                                       "subjects":  [
+                                                        "player_eb7315d9-e8c2-51c0-9ea7-6fc8fced8636",
+                                                        "player_16892af7-47cb-5adb-ae40-5d5617f870ec"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "ACE_COMPARE(player_eb7315d9-e8c2-51c0-9ea7-6fc8fced8636,player_16892af7-47cb-5adb-ae40-5d5617f870ec)",
+                                       "probability_raw":  1.0,
+                                       "submitted_integer":  99,
+                                       "yes_paths":  1,
+                                       "no_paths":  0,
+                                       "void_paths":  0,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  1,
+                                       "total_paths":  1,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "DF_COMPARE",
+                                       "subjects":  [
+                                                        "player_eb7315d9-e8c2-51c0-9ea7-6fc8fced8636",
+                                                        "player_16892af7-47cb-5adb-ae40-5d5617f870ec"
+                                                    ],
+                                       "operator":  null,
+                                       "threshold":  null,
+                                       "original_text":  "DF_COMPARE(player_eb7315d9-e8c2-51c0-9ea7-6fc8fced8636,player_16892af7-47cb-5adb-ae40-5d5617f870ec)",
+                                       "probability_raw":  0.0,
+                                       "submitted_integer":  1,
+                                       "yes_paths":  0,
+                                       "no_paths":  1,
+                                       "void_paths":  0,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  1,
+                                       "total_paths":  1,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "TIEBREAK_COUNT",
+                                       "subjects":  [
+
+                                                    ],
+                                       "operator":  "\u003e=",
+                                       "threshold":  1.0,
+                                       "original_text":  "TIEBREAK_COUNT(\u003e=,1)",
+                                       "probability_raw":  0.0,
+                                       "submitted_integer":  1,
+                                       "yes_paths":  0,
+                                       "no_paths":  1,
+                                       "void_paths":  0,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  1,
+                                       "total_paths":  1,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  null
+                                   },
+                                   {
+                                       "kind":  "DURATION_MIN",
+                                       "subjects":  [
+
+                                                    ],
+                                       "operator":  "\u003e",
+                                       "threshold":  100.0,
+                                       "original_text":  "DURATION_MIN(\u003e,100.0)",
+                                       "probability_raw":  1.0,
+                                       "submitted_integer":  99,
+                                       "yes_paths":  1,
+                                       "no_paths":  0,
+                                       "void_paths":  0,
+                                       "unresolved_paths":  0,
+                                       "settled_paths":  1,
+                                       "total_paths":  1,
+                                       "support_status":  "SUPPORTED",
+                                       "display_policy":  "duration-display-nearest-half-up/v1"
+                                   }
+                               ],
+                     "players":  [
+                                     {
+                                         "expected_aces":  10.0,
+                                         "expected_breaks":  5.0,
+                                         "expected_double_faults":  3.0,
+                                         "first_serve_win_expectation":  0.7067233858385616,
+                                         "name":  "Ann Li",
+                                         "retirement_probability":  0.0
+                                     },
+                                     {
+                                         "expected_aces":  5.0,
+                                         "expected_breaks":  8.0,
+                                         "expected_double_faults":  4.0,
+                                         "first_serve_win_expectation":  0.6756513404644569,
+                                         "name":  "Donna Vekic",
+                                         "retirement_probability":  0.0
+                                     }
+                                 ],
+                     "match_win_probability":  {
+                                                   "Ann Li":  0.0,
+                                                   "Donna Vekic":  1.0
+                                               },
+                     "warnings":  [
+                                      "DIRTY_CODE_TREE_RECORDED:47d286fe7abefd3e204335581dc2f9b39400545a20fd39e7cd9390a317b971a3",
+                                      "HISTORICAL_EXACT_DATE_COVERAGE_INCOMPLETE",
+                                      "UNKNOWN_INDOOR_ROOF_STATE",
+                                      "MISSING_CURRENT_CONDITION:roof state"
+                                  ]
+                 }
+             ]
+}

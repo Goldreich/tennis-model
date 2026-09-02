@@ -20,7 +20,7 @@ spec = importlib.util.spec_from_file_location(
 )
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
-from tennis_model.estimation.duration_model import UNRESOLVED_DURATION_DISPLAY_POLICY
+from tennis_model.estimation.duration_model import NEAREST_DURATION_DISPLAY_POLICY
 from tennis_model.locking import FIXED_100K_V1_POLICY, PathCountPolicy
 from tennis_model.props.settlement import ComparisonOperator
 from tennis_model.simulation import ACE_COMPARE, DF_COMPARE, DURATION_MIN, TIEBREAK_COUNT
@@ -64,6 +64,7 @@ if args.smoke_paths <= 0:
 if Path(args.operational_name).name != args.operational_name:
     parser.error("--operational-name must be one path component")
 
+fixture = None
 if args.fixture_file is not None:
     fixture = json.loads(args.fixture_file.read_bytes())
     mod.SCHEDULE_URL = str(fixture["schedule_url"])
@@ -105,7 +106,26 @@ if args.source_capture is not None:
 else:
     capture, captured, cutoff = mod.acquire_sources(output)
 
-selected = mod.schedule_matches(captured["schedule"]["payload"])
+schedule_overrides = {} if fixture is None else fixture.get("schedule_overrides", {})
+try:
+    selected = mod.schedule_matches(captured["schedule"]["payload"])
+except RuntimeError:
+    if not requested_ids.issubset({str(key) for key in schedule_overrides}):
+        raise
+    selected = {}
+if fixture is not None:
+    for official_id, override in schedule_overrides.items():
+        selected[str(official_id)] = (
+            {
+                "courtName": str(override.get("courtName", "TBD")),
+                "startEpoch": int(override["startEpoch"]),
+            },
+            {
+                "notBefore": override.get("notBefore"),
+                "statusCode": str(override.get("statusCode", "B")),
+                "order": int(override.get("order", 1)),
+            },
+        )
 base = artifact_repo / "artifacts/current-usopen-2026" / args.base_run_id
 source_manifest = mod.load_source_manifest(base / "source_manifest.yaml")
 manifest_pin = mod.SourceManifestProvenance.from_manifest(source_manifest)
@@ -367,7 +387,7 @@ for item in selected_matches:
             DURATION_MIN(
                 ComparisonOperator.MORE_THAN,
                 args.duration_threshold,
-                display_conversion_version=UNRESOLVED_DURATION_DISPLAY_POLICY.policy_version,
+                display_conversion_version=NEAREST_DURATION_DISPLAY_POLICY.policy_version,
             ),
         )
         lock = mod.create_prediction_lock(
@@ -387,7 +407,7 @@ for item in selected_matches:
             canonical_match_identity=canonical,
             retained_artifacts=artifacts,
             training_eligibility=eligibility[tour],
-            duration_display_policy=UNRESOLVED_DURATION_DISPLAY_POLICY,
+            duration_display_policy=NEAREST_DURATION_DISPLAY_POLICY,
         )
     verified = store.verify(lock.base_lock_id, lock.revision)
     player_names = {str(left["id"]): str(left["name"]), str(right["id"]): str(right["name"])}

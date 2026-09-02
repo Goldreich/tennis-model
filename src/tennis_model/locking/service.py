@@ -765,14 +765,6 @@ def create_prediction_lock(
             raise LockCreationError(
                 "duration simulation requires one of the frozen, explicitly known display policies"
             )
-        if (
-            execution_mode == "production"
-            and duration_display_policy != UNRESOLVED_DURATION_DISPLAY_POLICY
-        ):
-            raise LockCreationError(
-                "production duration locks require the unresolved official-minute display "
-                "policy until an explicit conversion rule is frozen"
-            )
     requested_support = tuple(
         assess_prop_support(prop, duration_available=duration_available) for prop in props
     )

@@ -1,0 +1,377 @@
+﻿{
+    "retrieved_at_utc":  "2026-09-01T22:21:40.4875021Z",
+    "source":  "US Open official complete-match feeds",
+    "matches":  [
+                    {
+                        "official_match_id":  "1101",
+                        "http_status":  200,
+                        "bytes":  1494,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1101.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1104",
+                        "http_status":  200,
+                        "bytes":  24216,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1104.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1105",
+                        "http_status":  200,
+                        "bytes":  24160,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1105.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1108",
+                        "http_status":  200,
+                        "bytes":  19923,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1108.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1109",
+                        "http_status":  200,
+                        "bytes":  1468,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1109.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1112",
+                        "http_status":  200,
+                        "bytes":  22118,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1112.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1113",
+                        "http_status":  200,
+                        "bytes":  16018,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1113.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1116",
+                        "http_status":  200,
+                        "bytes":  1482,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1116.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1117",
+                        "http_status":  200,
+                        "bytes":  24269,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1117.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1120",
+                        "http_status":  200,
+                        "bytes":  1468,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1120.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1121",
+                        "http_status":  200,
+                        "bytes":  20021,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1121.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1124",
+                        "http_status":  200,
+                        "bytes":  20095,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1124.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1125",
+                        "http_status":  200,
+                        "bytes":  20178,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1125.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1128",
+                        "http_status":  200,
+                        "bytes":  20189,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1128.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1129",
+                        "http_status":  200,
+                        "bytes":  20036,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1129.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1132",
+                        "http_status":  200,
+                        "bytes":  28284,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1132.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1137",
+                        "http_status":  200,
+                        "bytes":  20159,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1137.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1140",
+                        "http_status":  200,
+                        "bytes":  28281,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1140.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1141",
+                        "http_status":  200,
+                        "bytes":  20110,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1141.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1144",
+                        "http_status":  200,
+                        "bytes":  28337,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1144.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1149",
+                        "http_status":  200,
+                        "bytes":  24216,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1149.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1156",
+                        "http_status":  200,
+                        "bytes":  24204,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1156.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1161",
+                        "http_status":  200,
+                        "bytes":  24196,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1161.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1164",
+                        "http_status":  200,
+                        "bytes":  20185,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1164.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "1202",
+                        "http_status":  404,
+                        "bytes":  0,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1202.json",
+                        "error":  "The remote server returned an error: (404) Not Found."
+                    },
+                    {
+                        "official_match_id":  "1215",
+                        "http_status":  404,
+                        "bytes":  0,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1215.json",
+                        "error":  "The remote server returned an error: (404) Not Found."
+                    },
+                    {
+                        "official_match_id":  "1221",
+                        "http_status":  404,
+                        "bytes":  0,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/1221.json",
+                        "error":  "The remote server returned an error: (404) Not Found."
+                    },
+                    {
+                        "official_match_id":  "2101",
+                        "http_status":  200,
+                        "bytes":  16011,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2101.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2105",
+                        "http_status":  200,
+                        "bytes":  15883,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2105.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2108",
+                        "http_status":  200,
+                        "bytes":  15909,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2108.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2113",
+                        "http_status":  200,
+                        "bytes":  16035,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2113.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2116",
+                        "http_status":  200,
+                        "bytes":  16054,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2116.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2124",
+                        "http_status":  200,
+                        "bytes":  16084,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2124.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2128",
+                        "http_status":  200,
+                        "bytes":  16033,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2128.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2132",
+                        "http_status":  200,
+                        "bytes":  15940,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2132.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2133",
+                        "http_status":  200,
+                        "bytes":  15933,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2133.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2136",
+                        "http_status":  200,
+                        "bytes":  11454,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2136.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2137",
+                        "http_status":  200,
+                        "bytes":  15799,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2137.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2140",
+                        "http_status":  200,
+                        "bytes":  16133,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2140.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2141",
+                        "http_status":  200,
+                        "bytes":  1477,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2141.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2144",
+                        "http_status":  200,
+                        "bytes":  1500,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2144.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2145",
+                        "http_status":  200,
+                        "bytes":  20078,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2145.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2148",
+                        "http_status":  200,
+                        "bytes":  1494,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2148.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2149",
+                        "http_status":  200,
+                        "bytes":  16058,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2149.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2152",
+                        "http_status":  200,
+                        "bytes":  15990,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2152.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2153",
+                        "http_status":  200,
+                        "bytes":  16137,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2153.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2156",
+                        "http_status":  200,
+                        "bytes":  20118,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2156.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2157",
+                        "http_status":  200,
+                        "bytes":  16203,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2157.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2160",
+                        "http_status":  200,
+                        "bytes":  16107,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2160.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2161",
+                        "http_status":  200,
+                        "bytes":  20241,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2161.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2164",
+                        "http_status":  200,
+                        "bytes":  16132,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2164.json",
+                        "error":  null
+                    },
+                    {
+                        "official_match_id":  "2207",
+                        "http_status":  404,
+                        "bytes":  0,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2207.json",
+                        "error":  "The remote server returned an error: (404) Not Found."
+                    },
+                    {
+                        "official_match_id":  "2216",
+                        "http_status":  404,
+                        "bytes":  0,
+                        "url":  "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2216.json",
+                        "error":  "The remote server returned an error: (404) Not Found."
+                    }
+                ]
+}
