@@ -1,5 +1,10 @@
 # US Open live simulation workflow
 
+All new production locks use Tennis Model v1.1: frozen v1.0 serve components,
+surface Elo with the fixed 75% strength integration, and the retained
+minute-based game-day fitness assessment. Frozen v1.0 remains the archive and
+rollback model only.
+
 The live workflow is append-only. Each refresh creates a new source capture,
 model snapshot, operational snapshot bundle, and lock directory. Never reuse a
 post-start capture for a match lock.

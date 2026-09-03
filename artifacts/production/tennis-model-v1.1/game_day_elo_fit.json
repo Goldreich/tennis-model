@@ -1,0 +1,21 @@
+{
+  "framework_version": "v1.1",
+  "promoted_at_utc": "2026-09-02T00:00:00Z",
+  "schema_version": "game-day-elo-fit/v1",
+  "source_candidate_artifact_id": "4fd3112787fd6806fea1ecd3f8c068b6d5d9adad3f26b50871037e4706f30b30",
+  "source_test_artifact": "artifacts/backtests/tennis-model-v1.2-fitness-candidate-usopen-2026-v1/game_day_elo_fit.json",
+  "tour_fits": {
+    "ATP": {
+      "feature_names": ["recent_workload", "short_recovery", "return_from_layoff"],
+      "l2_penalty": 0.001,
+      "training_rows": 8094,
+      "weights_elo": [-12.347904657073542, -13.228819881969017, -63.333416555359115]
+    },
+    "WTA": {
+      "feature_names": ["recent_workload", "short_recovery", "return_from_layoff"],
+      "l2_penalty": 0.001,
+      "training_rows": 5602,
+      "weights_elo": [0.0, 0.0, -65.19081517004338]
+    }
+  }
+}

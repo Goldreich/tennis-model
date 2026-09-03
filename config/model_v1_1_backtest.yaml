@@ -1,0 +1,63 @@
+schema_version: tennis-v1.1-rolling-backtest/v1.0.1
+status: frozen
+plan_path: docs/Tennis_Model_v1.1_Backtest_Plan.md
+source_directory: data/backtest-v1.1-source
+output_directory: artifacts/backtests/tennis-model-v1.1-candidate-v1
+source_mode: RETROSPECTIVE_FINALIZED_EVENT_EMBARGO
+publication_vintage_complete: false
+result_embargo_days: 21
+forecast_frequency: monthly
+outer_years: [2022, 2023, 2024, 2025]
+inner_year_count: 2
+tours: [ATP, WTA]
+surfaces: [Hard, Clay, Grass]
+levels:
+  ATP: [A, F, G, M]
+  WTA: [35+H, 50+H, F, G, I, P, PM, W]
+exclude_score_tokens: [W/O, RET, DEF, ABD, BYE]
+temperature_multipliers: [0.80, 0.90, 1.00, 1.10, 1.20]
+elo:
+  k_values: [16.0, 24.0, 32.0]
+  surface_blends: [0.50, 0.75]
+  component_blends: [0.25, 0.50, 0.75]
+dynamic_anchor:
+  decay_days: [365.0, 730.0]
+  process_sd: [0.03, 0.07]
+  initial_sd: 1.25
+  surface_sd: 0.35
+  observation_scale_best_of_3: 1.0
+  observation_scale_best_of_5: 0.90
+  variance_floor: 0.000001
+  complete_decay_days: 365.0
+  complete_process_sd: 0.05
+  ranking_log_slope: 0.35
+  ranking_prior_sd: 0.75
+  head_to_head_prior_sd: 0.15
+  no_level_change_decay_days: 1000000.0
+  no_level_change_process_sd: 0.000001
+constant_anchor_blends: [0.25, 0.50, 0.75]
+integration:
+  instability_transform: x_over_1_plus_x
+  l2_penalties: [0.1, 1.0, 10.0]
+  reliability_prior_logit: -0.5
+  maximum_absolute_tilt: 2.5
+  root_tolerance: 0.000000001
+  probability_bound: 0.000001
+  coefficient_draws_for_summary: 2000
+  q1_weight: 1.0
+  q2_weight: 1.0
+bootstrap:
+  replicates: 2000
+  seed: 11092026
+winner_gates:
+  brier_improvement: 0.002
+  log_loss_improvement: 0.005
+  calibration_intercept_deterioration: 0.05
+  calibration_slope_distance_deterioration: 0.10
+  tail_deterioration: 0.005
+protected_props:
+  noninferiority_margin_brier: 0.001
+  sample_per_tour_year: 192
+  checkpoints: [256, 1024, 4096]
+  aggregate_mcse_target: 0.00035
+  seed: 21092026

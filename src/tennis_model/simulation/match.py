@@ -1658,6 +1658,22 @@ def simulate_matches(
                 if distribution.duration is None
                 else "seedsequence-duration-parameters-residual/v1"
             ),
+            "strength_enabled": distribution.strength is not None,
+            "strength_anchor_artifact_id": (
+                None
+                if distribution.strength is None
+                else distribution.strength.anchor_artifact_id
+            ),
+            "strength_integration_artifact_id": (
+                None
+                if distribution.strength is None
+                else distribution.strength.integration_artifact_id
+            ),
+            "strength_rng_stream_version": (
+                None
+                if distribution.strength is None
+                else distribution.strength.rng_stream_version
+            ),
             "ordinary_termination_before_retirement_version": (
                 "ordinary-terminal-bypass-before-b6/v1"
             ),

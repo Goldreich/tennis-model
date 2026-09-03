@@ -12,7 +12,7 @@ import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
-from math import isfinite, sqrt
+from math import isfinite, log, log10, sqrt
 from numbers import Integral, Real
 from types import MappingProxyType
 from typing import Annotated, Any, Literal, Self, cast
@@ -67,14 +67,24 @@ from tennis_model.estimation.snapshot import (
     load_snapshot_duration_artifact,
     load_snapshot_fits,
     load_snapshot_retirement_artifact,
+    load_snapshot_v1_1_artifacts,
+)
+from tennis_model.estimation.elo import SurfaceEloFit, predict_surface_elo
+from tennis_model.estimation.strength import predict_strength
+from tennis_model.estimation.strength_integration import (
+    StrengthIntegrationArtifactFit,
+    StrengthIntegrationDraw,
+    StrengthMatchParameters,
+    integrate_serve_performance,
+    prepare_strength_match_parameters,
 )
 from tennis_model.schemas import FrozenModel, Tour
+from tennis_model.serve import PrimitiveServeMeans
 from tennis_model.simulation.point import ServePerformanceDraw
 
 _COMPONENT_ORDER = tuple(ServeComponent)
-MATCH_PARAMETER_IMPLEMENTATION_VERSION: Literal["match-parameters-laplace-beta/v1"] = (
-    "match-parameters-laplace-beta/v1"
-)
+MATCH_PARAMETER_IMPLEMENTATION_VERSION = "match-parameters-laplace-beta/v1"
+V11_MATCH_PARAMETER_IMPLEMENTATION_VERSION = "match-parameters-strength-integrated/v1"
 MATCH_RNG_BIT_GENERATOR: Literal["PCG64"] = "PCG64"
 C6_DIRECT_EFFECT_POSTERIOR_VERSION: Literal["canonical-player-effect-laplace/v1"] = (
     "canonical-player-effect-laplace/v1"
@@ -242,6 +252,7 @@ class RetirementMatchParameters(_ParameterModel):
     tour_baseline_rho: Annotated[float, Field(gt=0, lt=1)]
     weighted_start_coverage_gate_passed: bool
     production_eligible: bool
+    coverage_validation_mode: Literal["production", "development"] = "production"
     reference_games: Literal[22] = 22
     competing_risk_version: str = RETIREMENT_COMPETING_RISK_VERSION
     player_posteriors: tuple[PlayerRetirementPosterior, PlayerRetirementPosterior]
@@ -283,13 +294,14 @@ class RetirementMatchParameters(_ParameterModel):
             )
         ):
             raise ValueError("B6 central intensity summary differs from posterior mean")
-        if (
-            not self.source_coverage.production_fit_inputs_eligible
-            or not self.weighted_start_coverage_gate_passed
-        ):
-            raise ValueError("match parameters require production-eligible B6 coverage")
-        if not self.production_eligible:
-            raise ValueError("match parameters cannot contain a non-production B6 artifact")
+        if self.coverage_validation_mode == "production":
+            if (
+                not self.source_coverage.production_fit_inputs_eligible
+                or not self.weighted_start_coverage_gate_passed
+            ):
+                raise ValueError("match parameters require production-eligible B6 coverage")
+            if not self.production_eligible:
+                raise ValueError("match parameters cannot contain a non-production B6 artifact")
         return self
 
 
@@ -407,8 +419,11 @@ class _C6ComponentPlan:
 
 
 class MatchParameterProvenance(_ParameterModel):
-    framework_version: Literal["v1.0"]
-    implementation_version: Literal["match-parameters-laplace-beta/v1"]
+    framework_version: Literal["v1.0", "v1.1-candidate", "v1.1"]
+    implementation_version: Literal[
+        "match-parameters-laplace-beta/v1",
+        "match-parameters-strength-integrated/v1",
+    ]
     snapshot_id: str
     component_artifact_ids: tuple[tuple[ServeComponent, str], ...]
     data_cutoff_utc: datetime
@@ -421,6 +436,8 @@ class MatchParameterProvenance(_ParameterModel):
     retirement_artifact_id: str | None = None
     inactivity_configuration_artifact_id: str | None = None
     duration_artifact_id: str | None = None
+    strength_anchor_artifact_id: str | None = None
+    strength_integration_artifact_id: str | None = None
 
     @field_validator("snapshot_id", "data_hash", "config_hash")
     @classmethod
@@ -461,6 +478,26 @@ class MatchParameterProvenance(_ParameterModel):
             _sha256(self.duration_artifact_id, field="duration_artifact_id")
             if self.retirement_artifact_id is None:
                 raise ValueError("duration provenance requires complete B6/C6 provenance")
+        strength_ids = (
+            self.strength_anchor_artifact_id,
+            self.strength_integration_artifact_id,
+        )
+        if (strength_ids[0] is None) != (strength_ids[1] is None):
+            raise ValueError("v1.1 strength provenance IDs must be present together")
+        if self.framework_version in {"v1.1-candidate", "v1.1"}:
+            if any(item is None for item in strength_ids):
+                raise ValueError("v1.1 provenance requires strength artifacts")
+            if self.implementation_version != V11_MATCH_PARAMETER_IMPLEMENTATION_VERSION:
+                raise ValueError("v1.1 provenance requires the integrated implementation")
+        elif any(item is not None for item in strength_ids):
+            raise ValueError("v1.0 provenance cannot contain v1.1 artifacts")
+        for label, value in zip(
+            ("strength_anchor_artifact_id", "strength_integration_artifact_id"),
+            strength_ids,
+            strict=True,
+        ):
+            if value is not None:
+                _sha256(value, field=label)
         return self
 
 
@@ -545,6 +582,7 @@ class MatchParameterRecord(_ParameterModel):
         "match-parameter-distribution/v1",
         "match-parameter-distribution/v2",
         "match-parameter-distribution/v3",
+        "match-parameter-distribution/v4",
     ] = "match-parameter-distribution/v1"
     snapshot_id: str
     snapshot: ModelSnapshot
@@ -556,6 +594,7 @@ class MatchParameterRecord(_ParameterModel):
     retirement: RetirementMatchParameters | None = None
     inactivity: InactivityMatchParameters | None = None
     duration: DurationMatchParameters | None = None
+    strength: StrengthMatchParameters | None = None
 
     @field_validator("snapshot_id")
     @classmethod
@@ -570,7 +609,8 @@ class MatchParameterRecord(_ParameterModel):
             raise ValueError("record provenance references another snapshot")
         if self.schema_version == "match-parameter-distribution/v1":
             if any(
-                item is not None for item in (self.retirement, self.inactivity, self.duration)
+                item is not None
+                for item in (self.retirement, self.inactivity, self.duration, self.strength)
             ):
                 raise ValueError("v1 match parameters cannot contain B6/C6 or duration inputs")
         elif self.retirement is None or self.inactivity is None:
@@ -579,11 +619,17 @@ class MatchParameterRecord(_ParameterModel):
             if self.duration is not None:
                 raise ValueError("v2 match parameters cannot silently add duration inputs")
         elif self.duration is None:
-            raise ValueError("v3 match parameters require the B5 duration artifact")
+            raise ValueError("v3/v4 match parameters require the B5 duration artifact")
+        if self.schema_version == "match-parameter-distribution/v4":
+            if self.strength is None:
+                raise ValueError("v4 match parameters require strength integration")
+        elif self.strength is not None:
+            raise ValueError("pre-v4 match parameters cannot contain strength integration")
         expected_record_schema = {
             "serve-model-snapshot/v1": "match-parameter-distribution/v1",
             "serve-model-snapshot/v2": "match-parameter-distribution/v2",
             "serve-model-snapshot/v3": "match-parameter-distribution/v3",
+            "serve-model-snapshot/v4": "match-parameter-distribution/v4",
         }[self.snapshot.schema_version]
         if self.schema_version != expected_record_schema:
             raise ValueError("match-parameter schema differs from its model snapshot schema")
@@ -676,8 +722,11 @@ class MatchParameterRecord(_ParameterModel):
             ):
                 raise ValueError("B6/C6 record provenance is inconsistent")
         if self.duration is not None:
-            if self.snapshot.schema_version != "serve-model-snapshot/v3":
-                raise ValueError("duration match parameters require a v3 model snapshot")
+            if self.snapshot.schema_version not in {
+                "serve-model-snapshot/v3",
+                "serve-model-snapshot/v4",
+            }:
+                raise ValueError("duration match parameters require a v3/v4 model snapshot")
             if self.snapshot.duration_artifact is None:
                 raise ValueError("duration match parameters lost their snapshot reference")
             if (
@@ -691,10 +740,33 @@ class MatchParameterRecord(_ParameterModel):
                 or self.provenance.duration_artifact_id != self.duration.artifact_id
             ):
                 raise ValueError("duration record provenance is inconsistent")
+        if self.strength is not None:
+            if not self.snapshot.strength_complete:
+                raise ValueError("strength parameters require a v4 snapshot")
+            assert self.snapshot.strength_anchor_artifact is not None
+            assert self.snapshot.strength_integration_artifact is not None
+            if (
+                self.strength.anchor_artifact_id
+                != self.snapshot.strength_anchor_artifact.artifact_id
+                or self.strength.integration_artifact_id
+                != self.snapshot.strength_integration_artifact.artifact_id
+                or self.provenance.strength_anchor_artifact_id
+                != self.strength.anchor_artifact_id
+                or self.provenance.strength_integration_artifact_id
+                != self.strength.integration_artifact_id
+            ):
+                raise ValueError("strength record provenance is inconsistent")
         return self
 
     def canonical_json(self) -> str:
-        return _canonical_json(self.model_dump(mode="json"))
+        payload = self.model_dump(mode="json")
+        if self.schema_version != "match-parameter-distribution/v4":
+            payload.pop("strength", None)
+            provenance = payload.get("provenance")
+            if isinstance(provenance, dict):
+                provenance.pop("strength_anchor_artifact_id", None)
+                provenance.pop("strength_integration_artifact_id", None)
+        return _canonical_json(payload)
 
 
 @dataclass(frozen=True, slots=True)
@@ -711,6 +783,8 @@ class MatchParameterDistribution:
     inactivity: InactivityMatchParameters | None = None
     duration: DurationFitArtifact | None = None
     c6_component_plans: tuple[_C6ComponentPlan, ...] = ()
+    strength: StrengthMatchParameters | None = None
+    strength_integration_fit: StrengthIntegrationArtifactFit | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -818,6 +892,11 @@ class MatchParameterDistribution:
                 or self.provenance.duration_artifact_id != self.duration.artifact_id
             ):
                 raise MatchParameterError("duration artifact or provenance is inconsistent")
+        if self.snapshot.strength_complete:
+            if self.strength is None or self.strength_integration_fit is None:
+                raise MatchParameterError("v1.1 snapshot lacks runtime strength integration")
+        elif self.strength is not None or self.strength_integration_fit is not None:
+            raise MatchParameterError("v1.0 distribution cannot contain strength integration")
 
     def to_record(self) -> MatchParameterRecord:
         def direction_record(
@@ -834,6 +913,9 @@ class MatchParameterDistribution:
 
         return MatchParameterRecord(
             schema_version=(
+                "match-parameter-distribution/v4"
+                if self.strength is not None
+                else
                 "match-parameter-distribution/v3"
                 if self.duration is not None
                 else "match-parameter-distribution/v2"
@@ -861,6 +943,7 @@ class MatchParameterDistribution:
                     player_ids=(self.context.player_a_id, self.context.player_b_id),
                 )
             ),
+            strength=self.strength,
         )
 
     def canonical_json(self) -> str:
@@ -1075,6 +1158,7 @@ class MatchSeedPlan(_ParameterModel):
     duration: SeedReference
     duration_parameters: SeedReference
     duration_residual: SeedReference
+    strength_integration: SeedReference | None = None
     bit_generator: Literal["PCG64"] = MATCH_RNG_BIT_GENERATOR
 
     @model_validator(mode="after")
@@ -1090,6 +1174,11 @@ class MatchSeedPlan(_ParameterModel):
             self.duration.spawn_key,
             self.duration_parameters.spawn_key,
             self.duration_residual.spawn_key,
+            *(
+                ()
+                if self.strength_integration is None
+                else (self.strength_integration.spawn_key,)
+            ),
         )
         if len(set(children)) != len(children):
             raise ValueError("match seed child streams must be distinct")
@@ -1105,6 +1194,7 @@ class MatchPerformanceDraw:
     player_b_serving: ServePerformanceDraw
     seed_plan: MatchSeedPlan
     retirement_draws: tuple[RetirementPathDraw, ...] = ()
+    strength_integration_draw: StrengthIntegrationDraw | None = None
 
 
 def _component_prediction(
@@ -1473,8 +1563,11 @@ def _build_retirement_parameters(
     artifact: RetirementFitArtifact,
     context: MatchContext,
     supplied_mixtures: tuple[RetirementScenarioMixture, ...],
+    *,
+    require_production_coverage: bool = True,
 ) -> RetirementMatchParameters:
-    artifact.require_production_coverage()
+    if require_production_coverage:
+        artifact.require_production_coverage()
     players = (context.player_a_id, context.player_b_id)
     by_player = {item.player_id: item for item in supplied_mixtures}
     if len(by_player) != len(supplied_mixtures) or any(
@@ -1492,7 +1585,14 @@ def _build_retirement_parameters(
     )
     if any(item.information_cutoff_utc != context.information_cutoff_utc for item in mixtures):
         raise MatchParameterError("B6 scenario mixture cutoff differs from the match cutoff")
-    posteriors = tuple(player_retirement_posterior(artifact, player) for player in players)
+    posteriors = tuple(
+        player_retirement_posterior(
+            artifact,
+            player,
+            require_production_coverage=require_production_coverage,
+        )
+        for player in players
+    )
     return RetirementMatchParameters(
         artifact_id=artifact.artifact_id,
         artifact_schema_version=artifact.schema_version,
@@ -1511,6 +1611,9 @@ def _build_retirement_parameters(
         tour_baseline_rho=artifact.tour_baseline_rho,
         weighted_start_coverage_gate_passed=artifact.weighted_start_coverage_gate_passed,
         production_eligible=artifact.production_eligible,
+        coverage_validation_mode=(
+            "production" if require_production_coverage else "development"
+        ),
         player_posteriors=cast(
             tuple[PlayerRetirementPosterior, PlayerRetirementPosterior], posteriors
         ),
@@ -1533,6 +1636,7 @@ def estimate_match(
     *,
     inactivity_records: Sequence[InactivityRecord] = (),
     retirement_scenario_mixtures: Sequence[RetirementScenarioMixture] = (),
+    require_retirement_production_coverage: bool = True,
 ) -> MatchParameterDistribution:
     """Load one explicit snapshot and construct both directional distributions.
 
@@ -1593,6 +1697,7 @@ def estimate_match(
             retirement_artifact,
             context,
             tuple(retirement_scenario_mixtures),
+            require_production_coverage=require_retirement_production_coverage,
         )
         assert snapshot.inactivity_configuration is not None
         inactivity_parameters, c6_component_plans = _build_inactivity_parameters(
@@ -1635,10 +1740,131 @@ def estimate_match(
         )
         return _adjust_direction_map_distribution(base, c6_effect_plans)
 
+    player_a_direction = direction(context.player_a_id, context.player_b_id)
+    player_b_direction = direction(context.player_b_id, context.player_a_id)
+    strength_parameters: StrengthMatchParameters | None = None
+    strength_integration_fit: StrengthIntegrationFit | None = None
+    if snapshot.strength_complete:
+        try:
+            anchor_fit, strength_integration_fit = load_snapshot_v1_1_artifacts(snapshot)
+        except ModelSnapshotError as exc:
+            raise MatchParameterError(f"cannot load v1.1 artifacts: {exc}") from exc
+        prediction_function = (
+            predict_surface_elo if isinstance(anchor_fit, SurfaceEloFit) else predict_strength
+        )
+        anchor_prediction = prediction_function(
+            anchor_fit,
+            player_a_id=context.player_a_id,
+            player_b_id=context.player_b_id,
+            surface=context.surface,
+            best_of=context.best_of,
+            scheduled_start_utc=context.scheduled_start_utc,
+        )
+        if snapshot.framework_version == "v1.1":
+            if not isinstance(anchor_fit, SurfaceEloFit):
+                raise MatchParameterError("production v1.1 requires the surface-Elo anchor")
+            condition_values = {item.name: item.value for item in context.conditions}
+            required = (
+                "game_day_fitness_artifact_sha256",
+                "game_day_elo_adjustment_player_a",
+                "game_day_elo_adjustment_player_b",
+            )
+            if any(name not in condition_values for name in required):
+                raise MatchParameterError("production v1.1 context lacks game-day fitness inputs")
+            try:
+                adjustment_a = float(condition_values[required[1]])
+                adjustment_b = float(condition_values[required[2]])
+            except (TypeError, ValueError) as exc:
+                raise MatchParameterError("game-day fitness adjustments are not numeric") from exc
+            if adjustment_a > 1e-12 or adjustment_b > 1e-12:
+                raise MatchParameterError("game-day fitness cannot increase an individual Elo")
+            adjusted_logit = anchor_prediction.mean_logit + (
+                log(10.0)
+                * (adjustment_a - adjustment_b)
+                / anchor_fit.config.rating_scale
+            )
+            anchor_prediction = anchor_prediction.model_copy(
+                update={
+                    "mean_logit": adjusted_logit,
+                    "probability": float(expit(adjusted_logit)),
+                }
+            )
+        map_a = player_a_direction.map_distribution
+        map_b = player_b_direction.map_distribution
+        means_a = PrimitiveServeMeans(
+            map_a.first_serve_in.map_mean,
+            map_a.ace_given_first_in.map_mean,
+            map_a.returnable_first_win.map_mean,
+            map_a.double_fault_given_second_opp.map_mean,
+            map_a.playable_second_win.map_mean,
+        )
+        means_b = PrimitiveServeMeans(
+            map_b.first_serve_in.map_mean,
+            map_b.ace_given_first_in.map_mean,
+            map_b.returnable_first_win.map_mean,
+            map_b.double_fault_given_second_opp.map_mean,
+            map_b.playable_second_win.map_mean,
+        )
+        q_predictions = (
+            map_a.returnable_first_win,
+            map_a.playable_second_win,
+            map_b.returnable_first_win,
+            map_b.playable_second_win,
+        )
+        component_variance = max(
+            1e-12, sum(item.linear_predictor_sd**2 for item in q_predictions)
+        )
+        q_components = tuple(
+            item
+            for direction_item in (player_a_direction, player_b_direction)
+            for item in direction_item.components
+            if item.fit.component in {ServeComponent.Q1, ServeComponent.Q2}
+        )
+        maximum_condition = max(item.fit.posterior.condition_number for item in q_components)
+        component_instability = min(1.0, max(0.0, log10(max(1.0, maximum_condition)) / 8.0))
+        information_values = []
+        for direction_item in (player_a_direction, player_b_direction):
+            for component in (ServeComponent.Q1, ServeComponent.Q2):
+                fit = direction_item.by_component[component].fit
+                info = next(
+                    (
+                        item.information_equivalent_trials
+                        for item in fit.diagnostics.player_information
+                        if item.player_id == direction_item.server_id
+                        and item.information_equivalent_trials is not None
+                    ),
+                    None,
+                )
+                if info is not None:
+                    information_values.append(float(info))
+        component_sparsity = (
+            1.0
+            if not information_values
+            else 1.0 / (1.0 + min(information_values) / 100.0)
+        )
+        assert snapshot.strength_anchor_artifact is not None
+        assert snapshot.strength_integration_artifact is not None
+        strength_parameters = prepare_strength_match_parameters(
+            anchor_artifact_id=snapshot.strength_anchor_artifact.artifact_id,
+            integration_artifact_id=snapshot.strength_integration_artifact.artifact_id,
+            anchor=anchor_prediction,
+            integration=strength_integration_fit,
+            player_a=means_a,
+            player_b=means_b,
+            best_of=context.best_of,
+            component_variance=component_variance,
+            component_instability=component_instability,
+            component_sparsity=component_sparsity,
+        )
+
     dependence = PerformanceDependenceSpec()
     provenance = MatchParameterProvenance(
         framework_version=snapshot.framework_version,
-        implementation_version=MATCH_PARAMETER_IMPLEMENTATION_VERSION,
+        implementation_version=(
+            V11_MATCH_PARAMETER_IMPLEMENTATION_VERSION
+            if strength_parameters is not None
+            else MATCH_PARAMETER_IMPLEMENTATION_VERSION
+        ),
         snapshot_id=snapshot.snapshot_id,
         component_artifact_ids=tuple(
             (reference.component, reference.artifact_id)
@@ -1662,18 +1888,28 @@ def estimate_match(
         duration_artifact_id=(
             None if duration_parameters is None else duration_parameters.artifact_id
         ),
+        strength_anchor_artifact_id=(
+            None if strength_parameters is None else strength_parameters.anchor_artifact_id
+        ),
+        strength_integration_artifact_id=(
+            None
+            if strength_parameters is None
+            else strength_parameters.integration_artifact_id
+        ),
     )
     return MatchParameterDistribution(
         snapshot=snapshot,
         context=context,
-        player_a_serving=direction(context.player_a_id, context.player_b_id),
-        player_b_serving=direction(context.player_b_id, context.player_a_id),
+        player_a_serving=player_a_direction,
+        player_b_serving=player_b_direction,
         performance_dependence=dependence,
         provenance=provenance,
         retirement=retirement_parameters,
         inactivity=inactivity_parameters,
         duration=duration_parameters,
         c6_component_plans=c6_component_plans,
+        strength=strength_parameters,
+        strength_integration_fit=strength_integration_fit,
     )
 
 
@@ -1690,9 +1926,23 @@ def restore_match_parameter_distribution(
         retirement_scenario_mixtures=(
             () if record.retirement is None else record.retirement.scenario_mixtures
         ),
+        require_retirement_production_coverage=(
+            True
+            if record.retirement is None
+            else record.retirement.coverage_validation_mode == "production"
+        ),
     )
-    if distribution.to_record() != record:
-        raise MatchParameterError("reconstructed matchup differs from its serialized record")
+    reconstructed = distribution.to_record()
+    if reconstructed != record:
+        expected = record.model_dump(mode="json")
+        observed = reconstructed.model_dump(mode="json")
+        differing_fields = sorted(
+            key for key in set(expected) | set(observed) if expected.get(key) != observed.get(key)
+        )
+        raise MatchParameterError(
+            "reconstructed matchup differs from its serialized record: "
+            f"fields={differing_fields}"
+        )
     return distribution
 
 
@@ -2106,14 +2356,20 @@ def sample_serve_performance(
     )
 
 
-def derive_match_seed_plan(seed: np.random.SeedSequence) -> MatchSeedPlan:
+def derive_match_seed_plan(
+    seed: np.random.SeedSequence,
+    *,
+    include_strength: bool = False,
+) -> MatchSeedPlan:
     """Derive stable independent stage streams without mutating the caller's seed."""
 
     if not isinstance(seed, np.random.SeedSequence):
         raise TypeError("seed must be an explicit numpy.random.SeedSequence")
     root_reference = SeedReference.from_seed_sequence(seed)
     root = root_reference.to_seed_sequence()
-    parameter, player_a, player_b, point_path, retirement, duration = root.spawn(6)
+    children = root.spawn(7 if include_strength else 6)
+    parameter, player_a, player_b, point_path, retirement, duration = children[:6]
+    strength = children[6] if include_strength else None
     retirement_parameters, retirement_boundaries = retirement.spawn(2)
     duration_parameters, duration_residual = duration.spawn(2)
     return MatchSeedPlan(
@@ -2128,6 +2384,9 @@ def derive_match_seed_plan(seed: np.random.SeedSequence) -> MatchSeedPlan:
         duration=SeedReference.from_seed_sequence(duration),
         duration_parameters=SeedReference.from_seed_sequence(duration_parameters),
         duration_residual=SeedReference.from_seed_sequence(duration_residual),
+        strength_integration=(
+            None if strength is None else SeedReference.from_seed_sequence(strength)
+        ),
     )
 
 
@@ -2145,7 +2404,7 @@ def sample_match_performance(
 ) -> MatchPerformanceDraw:
     """Run the full parameter-then-performance stages for one match path."""
 
-    plan = derive_match_seed_plan(seed)
+    plan = derive_match_seed_plan(seed, include_strength=distribution.strength is not None)
     parameters = sample_matchup_parameters(
         distribution,
         generator_from_seed_reference(plan.parameter_draws),
@@ -2158,6 +2417,44 @@ def sample_match_performance(
         parameters.player_b_serving,
         generator_from_seed_reference(plan.player_b_performance),
     )
+    strength_draw: StrengthIntegrationDraw | None = None
+    if distribution.strength is not None:
+        if distribution.strength_integration_fit is None or plan.strength_integration is None:
+            raise MatchParameterError("v1.1 distribution lost its integration fit or RNG")
+        integrated_a, integrated_b, strength_draw = integrate_serve_performance(
+            PrimitiveServeMeans(
+                player_a.first_serve_in,
+                player_a.ace_given_first_in,
+                player_a.returnable_first_win,
+                player_a.double_fault_given_second_opp,
+                player_a.playable_second_win,
+            ),
+            PrimitiveServeMeans(
+                player_b.first_serve_in,
+                player_b.ace_given_first_in,
+                player_b.returnable_first_win,
+                player_b.double_fault_given_second_opp,
+                player_b.playable_second_win,
+            ),
+            parameters=distribution.strength,
+            integration=distribution.strength_integration_fit,
+            best_of=distribution.context.best_of,
+            rng=generator_from_seed_reference(plan.strength_integration),
+        )
+        player_a = ServePerformanceDraw(
+            integrated_a.first_serve_in,
+            integrated_a.ace_given_first_in,
+            integrated_a.returnable_first_win,
+            integrated_a.double_fault_given_second_opp,
+            integrated_a.playable_second_win,
+        )
+        player_b = ServePerformanceDraw(
+            integrated_b.first_serve_in,
+            integrated_b.ace_given_first_in,
+            integrated_b.returnable_first_win,
+            integrated_b.double_fault_given_second_opp,
+            integrated_b.playable_second_win,
+        )
     retirement_draws: tuple[RetirementPathDraw, ...] = ()
     if distribution.retirement is not None:
         retirement_rng = generator_from_seed_reference(plan.retirement_parameters)
@@ -2186,6 +2483,7 @@ def sample_match_performance(
         player_b_serving=player_b,
         seed_plan=plan,
         retirement_draws=retirement_draws,
+        strength_integration_draw=strength_draw,
     )
 
 
@@ -2213,6 +2511,7 @@ __all__ = [
     "ServingDirectionDistribution",
     "ServingDirectionParameterDraw",
     "ServingDirectionRecord",
+    "StrengthMatchParameters",
     "UnseenEffectDraw",
     "derive_match_seed_plan",
     "estimate_match",

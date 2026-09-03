@@ -1,0 +1,48 @@
+schema_version: tennis-game-day-elo-fit/v1
+framework_version: Tennis Model v1.2-fitness-candidate
+status: experimental
+source_directory: data/elo-main-tour-current/source/tennismylife
+output_directory: artifacts/backtests/tennis-model-v1.2-fitness-candidate-usopen-2026-v1
+specification_path: docs/Tennis_Model_v1.2_Fitness_Candidate.md
+scorecard_forecasts_path: artifacts/backtests/usopen-2026-elo-diagnostic-v1/match_forecasts.csv
+
+source_years: [2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]
+tours: [ATP, WTA]
+surfaces: [Hard, Clay, Grass]
+levels:
+  ATP: [A, F, G, M]
+  WTA: [35+H, 50+H, F, G, I, P, PM, W]
+exclude_score_tokens: [W/O, WALKOVER, RET, DEF, ABD, BYE]
+
+base_elo:
+  initial_rating: 1500.0
+  k_factor: 16.0
+  surface_blend: 0.50
+  rating_scale: 400.0
+
+fitness_features:
+  workload_lookback_days: 21
+  workload_short_half_life_days: 3.0
+  workload_long_half_life_days: 14.0
+  workload_short_weight: 0.70
+  workload_unit_minutes: 300.0
+  normal_recovery_days: 2.0
+  layoff_threshold_days: 42.0
+  layoff_unit_days: 30.0
+  return_decay_matches: 3.0
+
+fit:
+  fit_start_utc: 2019-01-01T00:00:00Z
+  validation_start_utc: 2024-01-01T00:00:00Z
+  validation_end_utc: 2026-01-01T00:00:00Z
+  final_cutoff_utc: 2026-08-30T00:00:00Z
+  l2_candidates: [0.001, 0.01, 0.1, 1.0]
+  minimum_validation_brier_gain: 0.0002
+  maximum_absolute_weight_elo: 250.0
+
+held_out_test:
+  tournament_name: US Open
+  event_start_date: 2026-08-30
+  elo_logit_blend: 0.75
+  bootstrap_replicates: 10000
+  bootstrap_seed: 2092026

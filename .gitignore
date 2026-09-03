@@ -1,6 +1,9 @@
 .tmp/
+/tmp/
 /data/
 /artifacts/
+/outputs/
 /.runtime-worktree-*/
 .pytest_cache/
+/.test-tmp-*/
 __pycache__/

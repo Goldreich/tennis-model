@@ -1217,7 +1217,10 @@ def player_retirement_posterior(
     statistics = next(
         (item for item in artifact.player_statistics if item.player_id == player_id), None
     )
-    if statistics is None and not artifact.source_coverage.complete:
+    if (
+        statistics is None
+        and not artifact.source_coverage.complete
+    ):
         raise RetirementCoverageError(
             "no-history posterior is unavailable without complete source coverage"
         )

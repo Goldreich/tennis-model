@@ -278,6 +278,10 @@ class RetainedArtifactRecord(LockModel):
         "model_config",
         "settlement_policy",
         "code_archive",
+        "strength_fit",
+        "strength_integration",
+        "fitness_fit",
+        "fitness_input",
     ]
     artifact_id: str
     path: str
@@ -1109,7 +1113,7 @@ class PredictionSnapshot(LockModel):
     parent_revision: int | None = Field(default=None, ge=1)
     parent_content_sha256: str | None = None
     revision_reason: LockRevisionReason
-    framework_version: Literal["v1.0"]
+    framework_version: Literal["v1.0", "v1.1-candidate", "v1.1"]
     settlement_policy: SettlementPolicyRecord
     context: MatchContext
     information: InformationBundle
@@ -1132,6 +1136,33 @@ class PredictionSnapshot(LockModel):
     duration_model_artifact_id: str | None = None
     warnings: tuple[str, ...] = ()
     validation_checks: tuple[str, ...] = ()
+
+    def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        """Serialize v1.0 without fields introduced solely for v1.1.
+
+        Keeping the compatibility rule at the serialization boundary preserves
+        both already-published lock hashes and parse/dump round trips.
+        """
+
+        payload = super().model_dump(*args, **kwargs)
+        if self.framework_version == "v1.0":
+            match_parameters = payload.get("match_parameters")
+            if isinstance(match_parameters, dict):
+                match_parameters.pop("strength", None)
+                parameter_provenance = match_parameters.get("provenance")
+                if isinstance(parameter_provenance, dict):
+                    parameter_provenance.pop("strength_anchor_artifact_id", None)
+                    parameter_provenance.pop("strength_integration_artifact_id", None)
+                snapshot = match_parameters.get("snapshot")
+                if isinstance(snapshot, dict):
+                    for field in (
+                        "base_snapshot_id",
+                        "framework_config_hash",
+                        "strength_anchor_artifact",
+                        "strength_integration_artifact",
+                    ):
+                        snapshot.pop(field, None)
+        return payload
 
     @field_validator("created_at_utc")
     @classmethod
@@ -1206,6 +1237,8 @@ class PredictionSnapshot(LockModel):
             }
             if self.schema_version == "prediction-lock/v4":
                 required_artifact_kinds.add("duration_fit")
+            if self.framework_version in {"v1.1-candidate", "v1.1"}:
+                required_artifact_kinds.update({"strength_fit", "strength_integration"})
             if {item.kind for item in self.retained_artifacts} != required_artifact_kinds:
                 raise ValueError("v3 locks require one retained artifact for every required kind")
             if len({item.artifact_id for item in self.retained_artifacts}) != len(
@@ -1257,7 +1290,7 @@ class PredictionSnapshot(LockModel):
         if not prop_ids or len(prop_ids) != len(set(prop_ids)):
             raise ValueError("lock props must be nonempty and unique across estimates/gates")
         if self.simulation.performance_dependence_mode != "independent":
-            raise ValueError("frozen v1.0 locks must use independent performance draws")
+            raise ValueError("supported locks must retain independent primitive draws")
         if self.schema_version == "prediction-lock/v1":
             if (
                 self.retirement_model_artifact_id is not None
@@ -1453,6 +1486,23 @@ class PredictionSnapshot(LockModel):
                 parameter_provenance = match_parameters.get("provenance")
                 if isinstance(parameter_provenance, dict):
                     parameter_provenance.pop("duration_artifact_id", None)
+        if self.framework_version == "v1.0":
+            match_parameters = payload.get("match_parameters")
+            if isinstance(match_parameters, dict):
+                match_parameters.pop("strength", None)
+                parameter_provenance = match_parameters.get("provenance")
+                if isinstance(parameter_provenance, dict):
+                    parameter_provenance.pop("strength_anchor_artifact_id", None)
+                    parameter_provenance.pop("strength_integration_artifact_id", None)
+                snapshot = match_parameters.get("snapshot")
+                if isinstance(snapshot, dict):
+                    for field in (
+                        "base_snapshot_id",
+                        "framework_config_hash",
+                        "strength_anchor_artifact",
+                        "strength_integration_artifact",
+                    ):
+                        snapshot.pop(field, None)
                 model_snapshot = match_parameters.get("snapshot")
                 if isinstance(model_snapshot, dict):
                     model_snapshot.pop("duration_artifact", None)

@@ -1,14 +1,17 @@
 # Repository Agent Rules
 
-These instructions apply to the entire repository. The authoritative source for
-all probability-affecting behavior is
-`docs/Tennis_Model_v1.0_Specification.md`; read it before model work. This file is
-a guardrail, not a substitute for that specification.
+These instructions apply to the entire repository. The authoritative production
+source for probability-affecting behavior is
+`docs/Tennis_Model_v1.1_Production_Specification.md`; read it before model work.
+The frozen v1.0 specification remains authoritative only for archived v1.0
+replay and rollback. This file is a guardrail, not a substitute for either
+versioned specification.
 
 ## Authority and scope
 
-- Implement the frozen Tennis Model v1.0 as specified. Do not redesign,
-  reinterpret, or silently "improve" its architecture.
+- Implement Tennis Model v1.1 as the production framework governed by
+  `docs/Tennis_Model_v1.1_Production_Specification.md`. Frozen Tennis Model v1.0
+  remains unchanged as the documented archive and rollback implementation.
 - Any probability-affecting methodological change requires an explicit framework
   version change. Never introduce one incidentally during implementation,
   refactoring, optimization, or bug fixing.
@@ -33,9 +36,10 @@ a guardrail, not a substitute for that specification.
   later-version decision.
 - Do not use bookmaker odds, SportsPredict crowd forecasts, prediction-market
   probabilities, or similar market information as model inputs.
-- Do not add Elo, ranking, head-to-head, momentum, clutch, or other unapproved
-  features to fitted component models. Do not silently add hyperparameters or
-  tune the model to one tournament.
+- Frozen v1.0 component models remain unchanged. Production v1.1 adds only the
+  approved surface-Elo strength anchor, fixed Q1/Q2 integration, and temporary
+  minute-based game-day fitness adjustment. Ranking, head-to-head, momentum,
+  clutch, and unapproved features remain disabled.
 
 ## Data, state, and reproducibility
 

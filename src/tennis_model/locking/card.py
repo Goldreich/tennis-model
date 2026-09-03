@@ -98,6 +98,28 @@ def render_locked_match_card(lock: PredictionSnapshot) -> str:
             f"{right.predictive_concentration:.1f} | {left_trials} | {right_trials} |"
         )
 
+    strength = lock.match_parameters.strength
+    if strength is not None:
+        lines.extend(
+            [
+                "",
+                "### v1.1 strength integration",
+                "",
+                f"- Component winner probability: {strength.component_probability:.3%}",
+                f"- Independent strength probability: {strength.anchor_probability:.3%}",
+                f"- Integrated target probability: {strength.target_probability:.3%}",
+                f"- Reliability weight: {strength.reliability_weight:.4f}",
+                f"- Q1/Q2 tilt: {strength.q_tilt_mean:+.6f} "
+                f"(summary SD {strength.q_tilt_sd:.6f})",
+                f"- Logit disagreement: {strength.logit_disagreement:.6f}; "
+                f"sign disagreement: {strength.sign_disagreement}",
+                f"- Tilt saturated: {strength.tilt_saturated}",
+                f"- Strength anchor artifact: {strength.anchor_artifact_id}",
+                f"- Strength integration artifact: {strength.integration_artifact_id}",
+                "- F, A, and D are directly unchanged; ace/DF count changes are exposure-only.",
+            ]
+        )
+
     if (
         lock.match_parameters.inactivity is not None
         and lock.match_parameters.retirement is not None

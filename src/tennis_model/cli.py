@@ -5,7 +5,8 @@ from __future__ import annotations
 import argparse
 import json
 from dataclasses import asdict
-from datetime import date
+from datetime import UTC, date, datetime
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,30 @@ from tennis_model.data.source_manifest import load_source_manifest
 from tennis_model.estimation.inactivity import InactivityRecord
 from tennis_model.estimation.retirement import RetirementScenarioMixture
 from tennis_model.estimation.snapshot import ModelSnapshot
+from tennis_model.estimation.snapshot import (
+    create_v1_1_snapshot,
+    load_v1_1_strength_anchor_artifact,
+)
+from tennis_model.estimation.elo import (
+    SurfaceEloConfig,
+    import_surface_elo_csv,
+    write_surface_elo_artifact,
+)
+from tennis_model.estimation.strength import (
+    DynamicStrengthConfig,
+    StrengthOutcomeRecord,
+    fit_dynamic_strength,
+    load_strength_artifact,
+    write_strength_artifact,
+)
+from tennis_model.estimation.strength_integration import (
+    CrossFittedStrengthRecord,
+    StrengthIntegrationConfig,
+    create_fixed_strength_integration,
+    fit_strength_integration,
+    load_strength_integration_artifact,
+    write_strength_integration_artifact,
+)
 from tennis_model.identity import CanonicalMatchIdentity
 from tennis_model.locking.card import render_locked_match_card
 from tennis_model.locking.models import (
@@ -43,6 +68,7 @@ from tennis_model.operational_audit import audit_core
 from tennis_model.props.settlement import CANONICAL_SETTLEMENT_POLICY
 from tennis_model.schemas import Tour
 from tennis_model.simulation.parameters import MatchContext
+import yaml
 
 
 def _json_default(value: Any) -> Any:
@@ -177,6 +203,114 @@ def _audit_core(args: argparse.Namespace) -> int:
     return 0
 
 
+def _load_v1_1_config(path: str | Path) -> tuple[dict[str, Any], str]:
+    payload = Path(path).read_bytes()
+    raw = yaml.safe_load(payload)
+    if not isinstance(raw, dict) or raw.get("framework_version") != "v1.1":
+        raise ValueError("v1.1 config must identify framework_version v1.1")
+    if raw.get("market_inputs") != {"permitted": False}:
+        raise ValueError("v1.1 config must explicitly prohibit market inputs")
+    return raw, hashlib.sha256(payload).hexdigest()
+
+
+def _fit_strength_v1_1(args: argparse.Namespace) -> int:
+    raw_config, _config_hash = _load_v1_1_config(args.config)
+    records = tuple(
+        StrengthOutcomeRecord.model_validate(item)
+        for item in json.loads(Path(args.records).read_text(encoding="utf-8"))
+    )
+    cutoff = datetime.fromisoformat(args.cutoff).astimezone(UTC)
+    fit = fit_dynamic_strength(
+        records,
+        tour=Tour(args.tour),
+        cutoff_utc=cutoff,
+        fitted_at_utc=datetime.now(UTC),
+        config=DynamicStrengthConfig.model_validate(raw_config["strength_anchor"]),
+        code_commit=capture_code_provenance(args.repo).commit,
+    )
+    artifact = write_strength_artifact(fit, args.artifact_root)
+    _print_json({"artifact_id": artifact.artifact_id, "directory": str(artifact.directory)})
+    return 0
+
+
+def _import_elo_v1_1(args: argparse.Namespace) -> int:
+    raw_config, _config_hash = _load_v1_1_config(args.config)
+    cutoff = datetime.fromisoformat(args.cutoff).astimezone(UTC)
+    fitted_at = datetime.now(UTC)
+    fit = import_surface_elo_csv(
+        args.ratings,
+        args.source_manifest,
+        tour=Tour(args.tour),
+        cutoff_utc=cutoff,
+        fitted_at_utc=fitted_at,
+        config=SurfaceEloConfig.model_validate(raw_config["surface_elo_anchor"]),
+        code_commit=capture_code_provenance(args.repo).commit,
+    )
+    artifact = write_surface_elo_artifact(fit, args.artifact_root)
+    _print_json({"artifact_id": artifact.artifact_id, "directory": str(artifact.directory)})
+    return 0
+
+
+def _create_fixed_elo_integration_v1_1(args: argparse.Namespace) -> int:
+    raw_config, _config_hash = _load_v1_1_config(args.config)
+    cutoff = datetime.fromisoformat(args.cutoff).astimezone(UTC)
+    fitted_at = datetime.now(UTC)
+    fit = create_fixed_strength_integration(
+        tour=Tour(args.tour),
+        training_cutoff_utc=cutoff,
+        fitted_at_utc=fitted_at,
+        config=StrengthIntegrationConfig.model_validate(raw_config["strength_integration"]),
+        anchor_weight=float(raw_config["surface_elo_integration"]["anchor_weight"]),
+        selection_reference=str(
+            raw_config["surface_elo_integration"]["selection_reference"]
+        ),
+        code_commit=capture_code_provenance(args.repo).commit,
+    )
+    artifact = write_strength_integration_artifact(fit, args.artifact_root)
+    _print_json({"artifact_id": artifact.artifact_id, "directory": str(artifact.directory)})
+    return 0
+
+
+def _fit_integration_v1_1(args: argparse.Namespace) -> int:
+    raw_config, _config_hash = _load_v1_1_config(args.config)
+    records = tuple(
+        CrossFittedStrengthRecord.model_validate(item)
+        for item in json.loads(Path(args.records).read_text(encoding="utf-8"))
+    )
+    cutoff = datetime.fromisoformat(args.cutoff).astimezone(UTC)
+    fit = fit_strength_integration(
+        records,
+        tour=Tour(args.tour),
+        training_cutoff_utc=cutoff,
+        fitted_at_utc=datetime.now(UTC),
+        config=StrengthIntegrationConfig.model_validate(
+            raw_config["strength_integration"]
+        ),
+        code_commit=capture_code_provenance(args.repo).commit,
+    )
+    artifact = write_strength_integration_artifact(fit, args.artifact_root)
+    _print_json({"artifact_id": artifact.artifact_id, "directory": str(artifact.directory)})
+    return 0
+
+
+def _create_snapshot_v1_1(args: argparse.Namespace) -> int:
+    base = ModelSnapshot.model_validate_json(Path(args.base_snapshot).read_bytes())
+    anchor = load_v1_1_strength_anchor_artifact(args.strength_artifact)
+    integration = load_strength_integration_artifact(args.integration_artifact)
+    _raw, config_hash = _load_v1_1_config(args.config)
+    snapshot = create_v1_1_snapshot(
+        base,
+        strength_anchor=anchor,
+        strength_integration=integration,
+        framework_config_hash=config_hash,
+    )
+    output = Path(args.output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(snapshot.canonical_json(), encoding="utf-8")
+    _print_json({"snapshot_id": snapshot.snapshot_id, "path": str(output.resolve())})
+    return 0
+
+
 class _DirectoryOutcomeRevealer:
     def __init__(self, directory: str | Path) -> None:
         self.directory = Path(directory).resolve()
@@ -289,6 +423,61 @@ def build_parser() -> argparse.ArgumentParser:
     audit.add_argument("--locks")
     audit.add_argument("--ledger")
     audit.set_defaults(handler=_audit_core)
+
+    strength = commands.add_parser(
+        "fit-strength-v1.1", help="fit a cutoff-safe experimental strength anchor"
+    )
+    strength.add_argument("--records", required=True)
+    strength.add_argument("--config", default="config/model_v1_1.yaml")
+    strength.add_argument("--tour", choices=("ATP", "WTA"), required=True)
+    strength.add_argument("--cutoff", required=True)
+    strength.add_argument("--artifact-root", required=True)
+    strength.add_argument("--repo", default=".")
+    strength.set_defaults(handler=_fit_strength_v1_1)
+
+    elo = commands.add_parser(
+        "import-elo-v1.1", help="package a cutoff-safe surface Elo table"
+    )
+    elo.add_argument("--ratings", required=True)
+    elo.add_argument("--source-manifest", required=True)
+    elo.add_argument("--config", default="config/model_v1_1.yaml")
+    elo.add_argument("--tour", choices=("ATP", "WTA"), required=True)
+    elo.add_argument("--cutoff", required=True)
+    elo.add_argument("--artifact-root", required=True)
+    elo.add_argument("--repo", default=".")
+    elo.set_defaults(handler=_import_elo_v1_1)
+
+    fixed_integration = commands.add_parser(
+        "create-fixed-elo-integration-v1.1",
+        help="package the validated fixed Elo/component blend",
+    )
+    fixed_integration.add_argument("--config", default="config/model_v1_1.yaml")
+    fixed_integration.add_argument("--tour", choices=("ATP", "WTA"), required=True)
+    fixed_integration.add_argument("--cutoff", required=True)
+    fixed_integration.add_argument("--artifact-root", required=True)
+    fixed_integration.add_argument("--repo", default=".")
+    fixed_integration.set_defaults(handler=_create_fixed_elo_integration_v1_1)
+
+    integration = commands.add_parser(
+        "fit-integration-v1.1", help="fit the cross-fitted strength integration layer"
+    )
+    integration.add_argument("--records", required=True)
+    integration.add_argument("--config", default="config/model_v1_1.yaml")
+    integration.add_argument("--tour", choices=("ATP", "WTA"), required=True)
+    integration.add_argument("--cutoff", required=True)
+    integration.add_argument("--artifact-root", required=True)
+    integration.add_argument("--repo", default=".")
+    integration.set_defaults(handler=_fit_integration_v1_1)
+
+    snapshot = commands.add_parser(
+        "create-snapshot-v1.1", help="bind v1.1 artifacts to a complete v1.0 snapshot"
+    )
+    snapshot.add_argument("--base-snapshot", required=True)
+    snapshot.add_argument("--strength-artifact", required=True)
+    snapshot.add_argument("--integration-artifact", required=True)
+    snapshot.add_argument("--config", default="config/model_v1_1.yaml")
+    snapshot.add_argument("--output", required=True)
+    snapshot.set_defaults(handler=_create_snapshot_v1_1)
     return parser
 
 

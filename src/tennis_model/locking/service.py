@@ -663,6 +663,13 @@ def create_prediction_lock(
             raise LockCreationError("production locks require retained immutable artifacts")
         if store is None:
             raise LockCreationError("production locks require atomic publication to a lock store")
+        if (
+            snapshot.duration_complete
+            and duration_display_policy != UNRESOLVED_DURATION_DISPLAY_POLICY
+        ):
+            raise LockCreationError(
+                "production duration locks require the unresolved frozen display policy"
+            )
     if isinstance(path_count_policy, AdaptiveMCPolicy):
         if n_paths is not None:
             raise LockCreationError("adaptive path counts come only from the policy checkpoints")
@@ -680,6 +687,7 @@ def create_prediction_lock(
             context,
             inactivity_records=resolved_inactivity_records,
             retirement_scenario_mixtures=retirement_scenario_mixtures,
+            require_retirement_production_coverage=execution_mode == "production",
         )
     except (ValueError, RuntimeError) as exc:
         raise LockCreationError(f"cannot construct B6/C6 match parameters: {exc}") from exc
