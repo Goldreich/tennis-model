@@ -129,3 +129,13 @@ __all__ = [
     "simulate_matches",
     "tiebreak_server",
 ]
+
+    # v1.2 auxiliary rally-termination props.
+from tennis_model.simulation.match import (
+    TOTAL_UNFORCED_ERRORS,
+    UE_COMPARE,
+    UNFORCED_ERRORS,
+    WINNER_COMPARE,
+    WINNERS,
+)
+from tennis_model.simulation.r32_props import R32_PROP_BUNDLE

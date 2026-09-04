@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from math import floor, isfinite, sqrt
+from math import floor, isfinite, log1p, sqrt
 from numbers import Integral
 from typing import Any, Literal, cast
 
@@ -41,7 +41,13 @@ from tennis_model.simulation.point import (
     ServicePointResult,
     generate_service_point,
 )
-from tennis_model.simulation.scoring import SetResult, award_point, new_match
+from tennis_model.simulation.scoring import (
+    MatchState,
+    PointTransition,
+    SetResult,
+    award_point,
+    new_match,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -173,6 +179,8 @@ class MatchPath:
     duration_partial: bool = False
     duration_display_policy_version: str | None = None
     duration_display_candidates: tuple[int, ...] = ()
+    rally_winners: tuple[int, int] | None = None
+    rally_unforced_errors: tuple[int, int] | None = None
 
     def __post_init__(self) -> None:
         if isinstance(self.best_of, bool) or not isinstance(self.best_of, int):
@@ -1326,6 +1334,187 @@ def _build_player_stats(
     )
 
 
+_TIEBREAK_CYCLE_ACCELERATION_THRESHOLD = 1.0e-4
+_BINOMIAL_CHUNK_SIZE = 1 << 62
+
+
+def _service_point_win_probability(performance: ServePerformanceDraw) -> float:
+    first = performance.first_serve_in
+    ace = performance.ace_given_first_in
+    returnable_win = performance.returnable_first_win
+    double_fault = performance.double_fault_given_second_opp
+    second_win = performance.playable_second_win
+    return (
+        first * (ace + (1.0 - ace) * returnable_win)
+        + (1.0 - first) * (1.0 - double_fault) * second_win
+    )
+
+
+def _draw_large_binomial(
+    rng: np.random.Generator,
+    trials: int,
+    probability: float,
+) -> int:
+    remaining = trials
+    successes = 0
+    while remaining:
+        chunk = min(remaining, _BINOMIAL_CHUNK_SIZE)
+        successes += int(rng.binomial(chunk, probability))
+        remaining -= chunk
+    return successes
+
+
+def _draw_three_category_counts(
+    rng: np.random.Generator,
+    count: int,
+    weights: tuple[float, float, float],
+) -> tuple[int, int, int]:
+    if count == 0:
+        return 0, 0, 0
+    total = sum(weights)
+    if total <= 0.0:
+        raise RuntimeError("positive conditional point count has zero probability")
+    first_probability = min(1.0, max(0.0, weights[0] / total))
+    first = _draw_large_binomial(rng, count, first_probability)
+    remaining = count - first
+    residual_weight = weights[1] + weights[2]
+    if remaining == 0 or residual_weight <= 0.0:
+        return first, remaining, 0
+    second_probability = min(1.0, max(0.0, weights[1] / residual_weight))
+    second = _draw_large_binomial(rng, remaining, second_probability)
+    return first, second, remaining - second
+
+
+def _add_aggregate_service_points(
+    totals: dict[str, int],
+    performance: ServePerformanceDraw,
+    rng: np.random.Generator,
+    *,
+    server_wins: int,
+    server_losses: int,
+) -> None:
+    first = performance.first_serve_in
+    ace = performance.ace_given_first_in
+    returnable_win = performance.returnable_first_win
+    double_fault = performance.double_fault_given_second_opp
+    second_win = performance.playable_second_win
+
+    ace_count, returnable_first_wins, playable_second_wins = (
+        _draw_three_category_counts(
+            rng,
+            server_wins,
+            (
+                first * ace,
+                first * (1.0 - ace) * returnable_win,
+                (1.0 - first) * (1.0 - double_fault) * second_win,
+            ),
+        )
+    )
+    returnable_first_losses, double_faults, playable_second_losses = (
+        _draw_three_category_counts(
+            rng,
+            server_losses,
+            (
+                first * (1.0 - ace) * (1.0 - returnable_win),
+                (1.0 - first) * double_fault,
+                (1.0 - first) * (1.0 - double_fault) * (1.0 - second_win),
+            ),
+        )
+    )
+
+    service_points = server_wins + server_losses
+    first_serves_in = ace_count + returnable_first_wins + returnable_first_losses
+    second_serve_opportunities = service_points - first_serves_in
+    totals["service_points"] += service_points
+    totals["first_serve_opportunities"] += service_points
+    totals["first_serves_in"] += first_serves_in
+    totals["first_serve_points_won"] += ace_count + returnable_first_wins
+    totals["returnable_first_serve_trials"] += (
+        returnable_first_wins + returnable_first_losses
+    )
+    totals["returnable_first_serve_wins"] += returnable_first_wins
+    totals["second_serve_opportunities"] += second_serve_opportunities
+    totals["double_faults"] += double_faults
+    totals["playable_second_serve_trials"] += (
+        playable_second_wins + playable_second_losses
+    )
+    totals["playable_second_serve_wins"] += playable_second_wins
+    totals["second_serve_points_won"] += playable_second_wins
+    totals["aces"] += ace_count
+
+
+def _accelerate_extended_tiebreak(
+    state: MatchState,
+    players: tuple[str, str],
+    performances: tuple[ServePerformanceDraw, ServePerformanceDraw],
+    totals_by_player: dict[str, dict[str, int]],
+    rng: np.random.Generator,
+) -> tuple[MatchState, PointTransition] | None:
+    active = state.active_set
+    if active is None or active.tiebreak is None:
+        return None
+    tiebreak = active.tiebreak
+    if (
+        tiebreak.points[0] != tiebreak.points[1]
+        or tiebreak.points[0] < tiebreak.target_points - 1
+    ):
+        return None
+
+    hold_a = _service_point_win_probability(performances[0])
+    hold_b = _service_point_win_probability(performances[1])
+    player_a_sweep = hold_a * (1.0 - hold_b)
+    player_b_sweep = (1.0 - hold_a) * hold_b
+    absorption_probability = player_a_sweep + player_b_sweep
+    if absorption_probability >= _TIEBREAK_CYCLE_ACCELERATION_THRESHOLD:
+        return None
+    if absorption_probability <= 0.0:
+        raise RuntimeError("tiebreak cannot terminate under the sampled serve performances")
+
+    uniform = float(rng.random())
+    tied_cycles = int(floor(log1p(-uniform) / log1p(-absorption_probability)))
+    winner_index = (
+        0 if float(rng.random()) < player_a_sweep / absorption_probability else 1
+    )
+    tied_cycle_probability = 1.0 - absorption_probability
+    both_servers_win_probability = hold_a * hold_b / tied_cycle_probability
+    both_servers_win = _draw_large_binomial(
+        rng,
+        tied_cycles,
+        min(1.0, max(0.0, both_servers_win_probability)),
+    )
+    both_servers_lose = tied_cycles - both_servers_win
+
+    _add_aggregate_service_points(
+        totals_by_player[players[0]],
+        performances[0],
+        rng,
+        server_wins=both_servers_win + int(winner_index == 0),
+        server_losses=both_servers_lose + int(winner_index == 1),
+    )
+    _add_aggregate_service_points(
+        totals_by_player[players[1]],
+        performances[1],
+        rng,
+        server_wins=both_servers_win + int(winner_index == 1),
+        server_losses=both_servers_lose + int(winner_index == 0),
+    )
+
+    skipped_points = (
+        tiebreak.points[0] + tied_cycles,
+        tiebreak.points[1] + tied_cycles,
+    )
+    skipped_state = replace(
+        state,
+        active_set=replace(active, tiebreak=replace(tiebreak, points=skipped_points)),
+        total_points_played=state.total_points_played + 2 * tied_cycles,
+    )
+    penultimate = award_point(skipped_state, winner_index)
+    final = award_point(penultimate.after, winner_index)
+    if not final.tiebreak_completed:
+        raise AssertionError("accelerated tiebreak did not terminate")
+    return final.after, final
+
+
 def _simulate_one_path(
     player_a_id: str,
     player_b_id: str,
@@ -1366,67 +1555,81 @@ def _simulate_one_path(
         active = state.active_set
         if active is None:
             raise RuntimeError("incomplete match without an active set")
-        server_index = active.server_index
-        server_id = players[server_index]
-        receiver_id = players[1 - server_index]
-        performance = player_a_performance if server_id == player_a_id else player_b_performance
-        point = generate_service_point(
-            performance,
-            rng,
-            server_id=server_id,
-            receiver_id=receiver_id,
-        )
-        if point_trace is not None:
-            point_trace.append(point)
-        transition = award_point(state, 0 if point.winner_id == player_a_id else 1)
-        state = transition.after
-
-        totals = totals_by_player[server_id]
-        totals["service_points"] += 1
-        totals["first_serve_opportunities"] += 1
-        if point.first_serve_in:
-            totals["first_serves_in"] += 1
-            totals["first_serve_points_won"] += int(point.server_won)
-            if point.q1_used:
-                totals["returnable_first_serve_trials"] += 1
-                totals["returnable_first_serve_wins"] += int(point.server_won)
+        accelerated = None
+        if point_trace is None:
+            accelerated = _accelerate_extended_tiebreak(
+                state,
+                players,
+                (player_a_performance, player_b_performance),
+                totals_by_player,
+                rng,
+            )
+        if accelerated is not None:
+            state, transition = accelerated
         else:
-            totals["second_serve_opportunities"] += 1
-            totals["second_serve_points_won"] += int(point.server_won)
-            if point.q2_used:
-                totals["playable_second_serve_trials"] += 1
-                totals["playable_second_serve_wins"] += int(point.server_won)
-        if point.ace:
-            totals["aces"] += 1
-        if point.double_fault:
-            totals["double_faults"] += 1
-        if transition.break_point_opportunity:
-            totals_by_player[receiver_id]["break_point_opportunities"] += 1
-        if transition.regular_game_completed:
-            server_totals = totals_by_player[server_id]
-            receiver_totals = totals_by_player[receiver_id]
-            server_totals["service_games_played"] += 1
-            receiver_totals["return_games_played"] += 1
-            if transition.break_of_serve:
-                server_totals["breaks_conceded"] += 1
-                receiver_totals["breaks_achieved"] += 1
-                game_number = sum(active.games) + 1
-                match_game_number = (
-                    sum(result.total_games for result in transition.before.completed_sets)
-                    + game_number
-                )
-                break_events.append(
-                    BreakEvent(
-                        set_number=active.set_number,
-                        game_number=game_number,
-                        match_game_number=match_game_number,
-                        server_id=server_id,
-                        receiver_id=receiver_id,
-                        break_player_id=receiver_id,
-                    )
-                )
+            server_index = active.server_index
+            server_id = players[server_index]
+            receiver_id = players[1 - server_index]
+            performance = (
+                player_a_performance if server_id == player_a_id else player_b_performance
+            )
+            point = generate_service_point(
+                performance,
+                rng,
+                server_id=server_id,
+                receiver_id=receiver_id,
+            )
+            if point_trace is not None:
+                point_trace.append(point)
+            transition = award_point(state, 0 if point.winner_id == player_a_id else 1)
+            state = transition.after
+
+            totals = totals_by_player[server_id]
+            totals["service_points"] += 1
+            totals["first_serve_opportunities"] += 1
+            if point.first_serve_in:
+                totals["first_serves_in"] += 1
+                totals["first_serve_points_won"] += int(point.server_won)
+                if point.q1_used:
+                    totals["returnable_first_serve_trials"] += 1
+                    totals["returnable_first_serve_wins"] += int(point.server_won)
             else:
-                server_totals["service_games_held"] += 1
+                totals["second_serve_opportunities"] += 1
+                totals["second_serve_points_won"] += int(point.server_won)
+                if point.q2_used:
+                    totals["playable_second_serve_trials"] += 1
+                    totals["playable_second_serve_wins"] += int(point.server_won)
+            if point.ace:
+                totals["aces"] += 1
+            if point.double_fault:
+                totals["double_faults"] += 1
+            if transition.break_point_opportunity:
+                totals_by_player[receiver_id]["break_point_opportunities"] += 1
+            if transition.regular_game_completed:
+                server_totals = totals_by_player[server_id]
+                receiver_totals = totals_by_player[receiver_id]
+                server_totals["service_games_played"] += 1
+                receiver_totals["return_games_played"] += 1
+                if transition.break_of_serve:
+                    server_totals["breaks_conceded"] += 1
+                    receiver_totals["breaks_achieved"] += 1
+                    game_number = sum(active.games) + 1
+                    match_game_number = (
+                        sum(result.total_games for result in transition.before.completed_sets)
+                        + game_number
+                    )
+                    break_events.append(
+                        BreakEvent(
+                            set_number=active.set_number,
+                            game_number=game_number,
+                            match_game_number=match_game_number,
+                            server_id=server_id,
+                            receiver_id=receiver_id,
+                            break_player_id=receiver_id,
+                        )
+                    )
+                else:
+                    server_totals["service_games_held"] += 1
 
         completed_boundary = transition.regular_game_completed or transition.tiebreak_completed
         if completed_boundary and not state.is_complete:
@@ -1534,8 +1737,16 @@ def simulate_matches(
             (context.player_a_id, context.player_b_id),
         )
     )
-    children = root_seed.spawn(path_start + n_paths)
-    for child in children[path_start:]:
+    first_child_index = root_seed.n_children_spawned + path_start
+    children = (
+        np.random.SeedSequence(
+            root_seed.entropy,
+            spawn_key=(*root_seed.spawn_key, child_index),
+            pool_size=root_seed.pool_size,
+        )
+        for child_index in range(first_child_index, first_child_index + n_paths)
+    )
+    for child in children:
         performance = sample_match_performance(distribution, child)
         point_rng = generator_from_seed_reference(performance.seed_plan.point_path)
         retirement_intensities = (
@@ -1724,3 +1935,223 @@ __all__ = [
     "evaluate_settlement",
     "simulate_matches",
 ]
+
+# --- v1.2 rally-termination extension ---------------------------------------
+# This layer is intentionally appended to the frozen scoring implementation.
+# It consumes a separate RNG stream and only annotates already-completed paths.
+
+_RALLY_ACCOUNTING_CONVENTION = (
+    "usopen-winners-include-aces-ue-include-double-faults/v1"
+)
+_RALLY_PROP_KINDS = frozenset(
+    {
+        "WINNERS",
+        "WINNER_COMPARE",
+        "UNFORCED_ERRORS",
+        "TOTAL_UNFORCED_ERRORS",
+        "UE_COMPARE",
+    }
+)
+
+
+def _rally_prop(
+    kind: str,
+    subject_ids: tuple[str, ...],
+    *,
+    operator: ComparisonOperator | str | None = None,
+    threshold: float | None = None,
+    original_text: str,
+) -> PropSpec:
+    normalized_operator = (
+        None
+        if operator is None
+        else (
+            operator
+            if isinstance(operator, ComparisonOperator)
+            else ComparisonOperator(operator)
+        )
+    )
+    return PropSpec(
+        kind=kind,
+        subject_ids=subject_ids,
+        operator=normalized_operator,
+        threshold=threshold,
+        scope={"accounting_convention": _RALLY_ACCOUNTING_CONVENTION},
+        original_text=original_text,
+    )
+
+
+def WINNERS(
+    player: str, operator: ComparisonOperator | str, k: int
+) -> PropSpec:
+    return _rally_prop(
+        "WINNERS",
+        (player,),
+        operator=operator,
+        threshold=float(k),
+        original_text=f"WINNERS({player},{operator},{k})",
+    )
+
+
+def WINNER_COMPARE(player_a: str, player_b: str) -> PropSpec:
+    return _rally_prop(
+        "WINNER_COMPARE",
+        (player_a, player_b),
+        original_text=f"WINNER_COMPARE({player_a},{player_b})",
+    )
+
+
+def UNFORCED_ERRORS(
+    player: str, operator: ComparisonOperator | str, k: int
+) -> PropSpec:
+    return _rally_prop(
+        "UNFORCED_ERRORS",
+        (player,),
+        operator=operator,
+        threshold=float(k),
+        original_text=f"UNFORCED_ERRORS({player},{operator},{k})",
+    )
+
+
+def TOTAL_UNFORCED_ERRORS(
+    operator: ComparisonOperator | str, k: int
+) -> PropSpec:
+    return _rally_prop(
+        "TOTAL_UNFORCED_ERRORS",
+        (),
+        operator=operator,
+        threshold=float(k),
+        original_text=f"TOTAL_UNFORCED_ERRORS({operator},{k})",
+    )
+
+
+def UE_COMPARE(player_a: str, player_b: str) -> PropSpec:
+    return _rally_prop(
+        "UE_COMPARE",
+        (player_a, player_b),
+        original_text=f"UE_COMPARE({player_a},{player_b})",
+    )
+
+
+_first_serve_win_pct_display_dependent = FIRST_SERVE_WIN_PCT
+
+
+def FIRST_SERVE_WIN_PCT(
+    player: str, operator: ComparisonOperator | str, k: float
+) -> PropSpec:
+    from dataclasses import replace as _replace
+
+    prop = _first_serve_win_pct_display_dependent(player, operator, k)
+    return _replace(
+        prop,
+        scope={
+            **prop.scope,
+            "comparison_value_version": "exact-ratio/v1",
+            "rounding_invariant": True,
+        },
+    )
+
+
+_numeric_measure_without_rally = _numeric_measure
+
+
+def _rally_path_count(
+    path: MatchPath, player_id: str, attribute: str
+) -> float | None:
+    values = getattr(path, attribute, None)
+    if values is None:
+        return None
+    if player_id == path.player_a_id:
+        return float(values[0])
+    if player_id == path.player_b_id:
+        return float(values[1])
+    raise ValueError(f"{player_id!r} is not a participant in this path")
+
+
+def _numeric_measure(path: MatchPath, prop: PropSpec) -> float | None:
+    if prop.kind == "WINNERS":
+        return _rally_path_count(path, prop.subject_ids[0], "rally_winners")
+    if prop.kind == "UNFORCED_ERRORS":
+        return _rally_path_count(path, prop.subject_ids[0], "rally_unforced_errors")
+    if prop.kind == "TOTAL_UNFORCED_ERRORS":
+        values = path.rally_unforced_errors
+        return None if values is None else float(sum(values))
+    return _numeric_measure_without_rally(path, prop)
+
+
+_atomic_truth_without_rally = _atomic_truth
+
+
+def _atomic_truth(path: MatchPath, prop: PropSpec) -> EventTruth:
+    if prop.kind in {"WINNER_COMPARE", "UE_COMPARE"}:
+        attribute = (
+            "rally_winners"
+            if prop.kind == "WINNER_COMPARE"
+            else "rally_unforced_errors"
+        )
+        left = _rally_path_count(path, prop.subject_ids[0], attribute)
+        right = _rally_path_count(path, prop.subject_ids[1], attribute)
+        if left is None or right is None:
+            return EventTruth.UNRESOLVED
+        return EventTruth.from_bool(left > right)
+    return _atomic_truth_without_rally(path, prop)
+
+
+def _published_percentage_truth(path: MatchPath, prop: PropSpec) -> EventTruth:
+    value = _numeric_measure(path, prop)
+    if value is None:
+        return EventTruth.UNRESOLVED
+    operator, threshold = _comparison_parts(prop)
+    return EventTruth.from_bool(_compare(value, operator, threshold))
+
+
+_MONOTONE_COUNT_PROPS = frozenset(
+    set(_MONOTONE_COUNT_PROPS)
+    | {"WINNERS", "UNFORCED_ERRORS", "TOTAL_UNFORCED_ERRORS"}
+)
+
+
+_simulate_matches_without_rally = simulate_matches
+
+
+def simulate_matches(distribution: MatchParameterDistribution, **kwargs: Any) -> SimulationBatch:
+    from dataclasses import replace as _replace
+
+    batch = _simulate_matches_without_rally(distribution, **kwargs)
+    parameters = getattr(distribution, "rally_termination", None)
+    if parameters is None:
+        return batch
+    from tennis_model.estimation.rally_termination import annotate_paths
+
+    paths = annotate_paths(
+        batch.paths,
+        parameters,
+        seed_id=batch.seed_id,
+        path_start=int(kwargs.get("path_start", 0)),
+    )
+    expected: dict[str, dict[str, float]] = {}
+    if paths:
+        for player_id, index in (
+            (paths[0].player_a_id, 0),
+            (paths[0].player_b_id, 1),
+        ):
+            expected[player_id] = {
+                "winners": float(
+                    sum(path.rally_winners[index] for path in paths) / len(paths)
+                ),
+                "unforced_errors": float(
+                    sum(path.rally_unforced_errors[index] for path in paths) / len(paths)
+                ),
+            }
+    provenance = {
+        **batch.provenance,
+        "rally_termination": {
+            "artifact_id": parameters.artifact_id,
+            "schema_version": parameters.schema_version,
+            "accounting_convention": parameters.accounting_convention,
+            "data_cutoff_utc": parameters.data_cutoff_utc.isoformat(),
+            "rng_stream_version": "sha256-seed-id-path-start-pcg64/v1",
+            "expected_by_player": expected,
+        },
+    }
+    return _replace(batch, paths=paths, provenance=provenance)

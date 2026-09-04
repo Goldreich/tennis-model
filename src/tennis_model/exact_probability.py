@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
-from functools import lru_cache
-from math import isfinite
+from functools import cache
+from math import isfinite, nextafter
 from typing import Literal
 
 
 def _probability(value: float, *, field: str) -> float:
     result = float(value)
-    if not isfinite(result) or not 0.0 < result < 1.0:
-        raise ValueError(f"{field} must be strictly inside (0, 1)")
+    if not isfinite(result) or not 0.0 <= result <= 1.0:
+        raise ValueError(f"{field} must be inside [0, 1]")
+    if result == 0.0:
+        return nextafter(0.0, 1.0)
+    if result == 1.0:
+        return nextafter(1.0, 0.0)
     return result
 
 
@@ -48,7 +52,7 @@ def tiebreak_probability(
     if first_server not in (0, 1):
         raise ValueError("first_server must be 0 or 1")
 
-    @lru_cache(maxsize=None)
+    @cache
     def win(a: int, b: int) -> float:
         if max(a, b) >= target and abs(a - b) >= 2:
             return 1.0 if a > b else 0.0
@@ -63,6 +67,8 @@ def tiebreak_probability(
             win_two_1 = p2 * p3
             split_1 = p2 * (1.0 - p3) + (1.0 - p2) * p3
             denominator = 1.0 - split_0 * split_1
+            if denominator == 0.0:
+                return 0.5
             return (win_two_0 + split_0 * win_two_1) / denominator
         index = a + b
         p = _point_a_probability(index, first_server, pa, pb)
@@ -81,7 +87,7 @@ def _set_outcomes(
     hold_a = hold_probability(p_a_serve)
     hold_b = hold_probability(p_b_serve)
 
-    @lru_cache(maxsize=None)
+    @cache
     def recurse(a_games: int, b_games: int, server: int) -> tuple[tuple[int, int, float], ...]:
         if max(a_games, b_games) >= 6 and abs(a_games - b_games) >= 2:
             return ((0 if a_games > b_games else 1, server, 1.0),)
@@ -104,9 +110,15 @@ def _set_outcomes(
             combined[(winner, next_server)] = combined.get((winner, next_server), 0.0) + (
                 (1.0 - p_a_game) * probability
             )
-        return tuple((winner, server_id, probability) for (winner, server_id), probability in combined.items())
+        return tuple(
+            (winner, server_id, probability)
+            for (winner, server_id), probability in combined.items()
+        )
 
-    return {(winner, server): probability for winner, server, probability in recurse(0, 0, first_server)}
+    return {
+        (winner, server): probability
+        for winner, server, probability in recurse(0, 0, first_server)
+    }
 
 
 def exact_match_win_probability(
@@ -122,7 +134,21 @@ def exact_match_win_probability(
         raise ValueError("best_of must be 3 or 5")
     needed = best_of // 2 + 1
 
-    @lru_cache(maxsize=None)
+    @cache
+    def set_outcomes(
+        server: int, target: Literal[7, 10]
+    ) -> tuple[tuple[int, int, float], ...]:
+        return tuple(
+            (winner, next_server, probability)
+            for (winner, next_server), probability in _set_outcomes(
+                pa,
+                pb,
+                first_server=server,
+                deciding_tiebreak_target=target,
+            ).items()
+        )
+
+    @cache
     def match(a_sets: int, b_sets: int, server: int) -> float:
         if a_sets == needed:
             return 1.0
@@ -131,12 +157,7 @@ def exact_match_win_probability(
         deciding = a_sets == needed - 1 and b_sets == needed - 1
         target: Literal[7, 10] = 10 if deciding else 7
         result = 0.0
-        for (winner, next_server), probability in _set_outcomes(
-            pa,
-            pb,
-            first_server=server,
-            deciding_tiebreak_target=target,
-        ).items():
+        for winner, next_server, probability in set_outcomes(server, target):
             result += probability * match(
                 a_sets + int(winner == 0),
                 b_sets + int(winner == 1),

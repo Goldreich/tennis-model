@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Literal
 
 import numpy as np
@@ -54,7 +55,6 @@ from tennis_model.locking.models import (
     serialize_prop,
 )
 from tennis_model.locking.path_counts import (
-    ADAPTIVE_MC_CS_V1_POLICY,
     FIXED_50K_V1_POLICY,
     FIXED_100K_V1_POLICY,
     AdaptiveMCPolicy,
@@ -82,6 +82,7 @@ from tennis_model.simulation.match import (
     evaluate_settlement,
     simulate_matches,
 )
+from tennis_model.simulation.parallel import simulate_matches_parallel
 from tennis_model.simulation.parameters import (
     MatchContext,
     MatchParameterDistribution,
@@ -440,16 +441,36 @@ def _run(
     trace_level: Literal["summary", "points"],
     duration_display_policy: DurationDisplayPolicy,
     path_start: int = 0,
+    simulation_workers: int = 1,
+    simulation_checkpoint_dir: Path | None = None,
+    simulation_checkpoint_paths: int = 5_000,
+    simulation_progress: bool = False,
 ) -> tuple[SimulationBatch, tuple[PropEstimate, ...]]:
-    batch = simulate_matches(
-        distribution,
-        n_paths=n_paths,
-        seed=seed,
-        trace_level=trace_level,
-        first_server_id=first_server_id,
-        duration_display_policy=duration_display_policy,
-        path_start=path_start,
-    )
+    if simulation_checkpoint_dir is not None:
+        if path_start:
+            raise ValueError("parallel lock simulation does not accept a nonzero path_start")
+        batch = simulate_matches_parallel(
+            distribution,
+            n_paths=n_paths,
+            seed=seed,
+            workers=simulation_workers,
+            checkpoint_dir=simulation_checkpoint_dir,
+            checkpoint_paths=simulation_checkpoint_paths,
+            trace_level=trace_level,
+            first_server_id=first_server_id,
+            duration_display_policy=duration_display_policy,
+            show_progress=simulation_progress,
+        )
+    else:
+        batch = simulate_matches(
+            distribution,
+            n_paths=n_paths,
+            seed=seed,
+            trace_level=trace_level,
+            first_server_id=first_server_id,
+            duration_display_policy=duration_display_policy,
+            path_start=path_start,
+        )
     return batch, tuple(evaluate_settlement(prop, batch, policy) for prop in props)
 
 
@@ -597,6 +618,10 @@ def create_prediction_lock(
     historical_validation_policy: HistoricalValidationPolicy = POINT_IN_TIME_VINTAGE_POLICY,
     training_eligibility: HistoricalTrainingEligibilityProvenance | None = None,
     duration_display_policy: DurationDisplayPolicy = UNRESOLVED_DURATION_DISPLAY_POLICY,
+    simulation_workers: int = 1,
+    simulation_checkpoint_dir: str | Path | None = None,
+    simulation_checkpoint_paths: int = 5_000,
+    simulation_progress: bool = False,
 ) -> PredictionSnapshot:
     """Estimate, simulate, evaluate, summarize, and optionally persist one lock.
 
@@ -605,6 +630,17 @@ def create_prediction_lock(
     """
 
     enforce_dirty_tree_policy(code, allow_dirty=allow_dirty)
+    if simulation_workers <= 0:
+        raise LockCreationError("simulation_workers must be positive")
+    if simulation_checkpoint_paths <= 0:
+        raise LockCreationError("simulation_checkpoint_paths must be positive")
+    resolved_checkpoint_dir = (
+        None
+        if simulation_checkpoint_dir is None
+        else Path(simulation_checkpoint_dir).resolve()
+    )
+    if simulation_workers > 1 and resolved_checkpoint_dir is None:
+        raise LockCreationError("parallel simulation requires simulation_checkpoint_dir")
     if (
         platform_submission_policy is not None
         and platform_submission_policy != SPORTSPREDICT_SUBMISSION_POLICY
@@ -828,6 +864,10 @@ def create_prediction_lock(
             first_server_id=first_server_id,
             trace_level=trace_level,
             duration_display_policy=duration_display_policy,
+            simulation_workers=simulation_workers,
+            simulation_checkpoint_dir=resolved_checkpoint_dir,
+            simulation_checkpoint_paths=simulation_checkpoint_paths,
+            simulation_progress=simulation_progress,
         )
         reasons = escalation_reasons(estimates, path_count_policy)
         escalated = False
@@ -845,6 +885,10 @@ def create_prediction_lock(
                 first_server_id=first_server_id,
                 trace_level=trace_level,
                 duration_display_policy=duration_display_policy,
+                simulation_workers=simulation_workers,
+                simulation_checkpoint_dir=resolved_checkpoint_dir,
+                simulation_checkpoint_paths=simulation_checkpoint_paths,
+                simulation_progress=simulation_progress,
             )
             escalated = True
 
@@ -1029,9 +1073,9 @@ def create_prediction_lock(
             if distribution.duration is not None
             else "joint-match-simulator/v1"
         ),
-        chunk_size=batch.n_paths,
+        chunk_size=int(batch.provenance.get("checkpoint_paths", batch.n_paths)),
         thread_count=1,
-        process_count=1,
+        process_count=simulation_workers,
     )
     historical_time = HistoricalTimeProvenance(
         information_cutoff_utc=context.information_cutoff_utc,
@@ -1127,9 +1171,9 @@ def create_prediction_lock(
                 else duration_display_policy.policy_version
             ),
             seed_policy_version="production-seed-policy/v1",
-            chunk_size=batch.n_paths,
+            chunk_size=int(batch.provenance.get("checkpoint_paths", batch.n_paths)),
             thread_count=1,
-            process_count=1,
+            process_count=simulation_workers,
         ),
         match_summary=summary,
         prop_estimates=tuple(
@@ -1315,4 +1359,22 @@ def reproduce_prediction_lock(
         replay_level=replay_level,
         runtime_matches=runtime_matches,
         semantic_max_probability_error=probability_error,
+    )
+
+# --- v1.2 rally-aware checkpoint namespace ----------------------------------
+_simulate_matches_parallel_without_rally_namespace = simulate_matches_parallel
+
+
+def simulate_matches_parallel(
+    distribution: MatchParameterDistribution,
+    **kwargs: Any,
+) -> SimulationBatch:
+    rally = getattr(distribution, "rally_termination", None)
+    if rally is not None:
+        checkpoint_dir = Path(kwargs["checkpoint_dir"])
+        kwargs["checkpoint_dir"] = (
+            checkpoint_dir / f"rally-{rally.artifact_id[:16]}"
+        )
+    return _simulate_matches_parallel_without_rally_namespace(
+        distribution, **kwargs
     )

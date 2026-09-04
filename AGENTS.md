@@ -2,16 +2,19 @@
 
 These instructions apply to the entire repository. The authoritative production
 source for probability-affecting behavior is
-`docs/Tennis_Model_v1.1_Production_Specification.md`; read it before model work.
-The frozen v1.0 specification remains authoritative only for archived v1.0
-replay and rollback. This file is a guardrail, not a substitute for either
-versioned specification.
+`docs/Tennis_Model_v1.2_Specification.md`; read it before model work. Tennis Model
+v1.2 inherits the frozen v1.1 framework documented by
+`docs/Tennis_Model_v1.1_Production_Specification.md`. The frozen v1.0
+specification remains authoritative only for archived v1.0 replay and rollback.
+This file is a guardrail, not a substitute for the versioned specifications.
 
 ## Authority and scope
 
-- Implement Tennis Model v1.1 as the production framework governed by
-  `docs/Tennis_Model_v1.1_Production_Specification.md`. Frozen Tennis Model v1.0
-  remains unchanged as the documented archive and rollback implementation.
+- Implement Tennis Model v1.2 as the active production framework governed by
+  `docs/Tennis_Model_v1.2_Specification.md`. It inherits frozen Tennis Model v1.1,
+  governed by `docs/Tennis_Model_v1.1_Production_Specification.md`. Frozen Tennis
+  Model v1.0 remains unchanged as the documented archive and rollback
+  implementation.
 - Any probability-affecting methodological change requires an explicit framework
   version change. Never introduce one incidentally during implementation,
   refactoring, optimization, or bug fixing.
@@ -36,10 +39,12 @@ versioned specification.
   later-version decision.
 - Do not use bookmaker odds, SportsPredict crowd forecasts, prediction-market
   probabilities, or similar market information as model inputs.
-- Frozen v1.0 component models remain unchanged. Production v1.1 adds only the
+- Frozen v1.0 component models remain unchanged. Frozen v1.1 adds only the
   approved surface-Elo strength anchor, fixed Q1/Q2 integration, and temporary
-  minute-based game-day fitness adjustment. Ranking, head-to-head, momentum,
-  clutch, and unapproved features remain disabled.
+  minute-based game-day fitness adjustment. Production v1.2 adds only its
+  specified winners/unforced-errors rally-termination layer and sequential
+  Bayesian player-effect updates. Ranking, head-to-head, momentum, clutch, and
+  unapproved features remain disabled.
 
 ## Data, state, and reproducibility
 
@@ -73,3 +78,10 @@ versioned specification.
   4. genuine ambiguities or blockers;
   5. principal files changed;
   6. readiness for the next milestone.
+## Active production framework
+
+- Tennis Model v1.1 is the frozen Elo and game-day-fitness framework.
+- Tennis Model v1.2 is the active production successor governed by
+  `docs/Tennis_Model_v1.2_Specification.md`. It inherits v1.1 unchanged and adds
+  only the versioned winners/unforced-errors rally-termination layer and its
+  sequential Bayesian player-effect updates.

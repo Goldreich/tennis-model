@@ -14,9 +14,9 @@ from tennis_model.estimation.strength_integration import (
     prepare_strength_match_parameters,
     solve_q_tilt,
 )
+from tennis_model.exact_probability import exact_match_win_probability
 from tennis_model.schemas import Tour
 from tennis_model.serve import PrimitiveServeMeans
-from tennis_model.exact_probability import exact_match_win_probability
 
 
 def _config() -> StrengthIntegrationConfig:
@@ -80,6 +80,47 @@ def test_exact_probability_and_q_tilt_are_symmetric_and_monotone() -> None:
     assert tilt > 0.0
     assert not saturated
     assert attained == pytest.approx(target_logit, abs=2e-8)
+
+
+@pytest.mark.parametrize(
+    ("p_a", "p_b", "best_of", "expected"),
+    (
+        (0.65, 0.60, 3, 0.7376734700452428),
+        (0.65, 0.60, 5, 0.7861870823200439),
+        (0.58, 0.72, 3, 0.04159807007857941),
+        (0.58, 0.72, 5, 0.015533106653154483),
+        (0.50, 0.50, 3, 0.5),
+    ),
+)
+def test_exact_probability_optimization_preserves_reference_values(
+    p_a: float, p_b: float, best_of: int, expected: float
+) -> None:
+    assert exact_match_win_probability(p_a, p_b, best_of=best_of) == pytest.approx(
+        expected, abs=1e-15
+    )
+
+
+@pytest.mark.parametrize(
+    ("target", "expected_tilt"),
+    (
+        (-2.0, -0.5561139760538936),
+        (-0.5, -0.28983937203884125),
+        (0.0, -0.19460939057171345),
+        (0.75, -0.05263620615005493),
+        (2.0, 0.1657627997919917),
+    ),
+)
+def test_bracketed_tilt_optimization_preserves_reference_solution(
+    target: float, expected_tilt: float
+) -> None:
+    a = PrimitiveServeMeans(0.62, 0.12, 0.70, 0.08, 0.55)
+    b = PrimitiveServeMeans(0.64, 0.08, 0.66, 0.10, 0.52)
+    tilt, attained, saturated = solve_q_tilt(
+        a, b, target_logit=target, best_of=5, config=_config()
+    )
+    assert not saturated
+    assert tilt == pytest.approx(expected_tilt, abs=2e-8)
+    assert attained == pytest.approx(target, abs=_config().root_tolerance)
 
 
 def test_integration_preserves_f_a_d_and_is_reproducible() -> None:

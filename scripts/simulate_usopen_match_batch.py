@@ -3,14 +3,9 @@
 from __future__ import annotations
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from copy import deepcopy
 import importlib.util
 import json
-import math
-import subprocess
 import sys
-from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
@@ -22,22 +17,31 @@ artifact_repo = repo
 
 spec = importlib.util.spec_from_file_location(
     "simulate_remaining_four",
-    repo / ".runtime-worktree-81aa8db" / "scripts" / "simulate_remaining_four.py",
+    repo / "scripts" / "simulate_remaining_four.py",
 )
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
-from tennis_model.estimation.duration_model import NEAREST_DURATION_DISPLAY_POLICY
-from tennis_model.estimation.fitness_history import (
+from tennis_model.estimation.duration_model import (  # noqa: E402
+    NEAREST_DURATION_DISPLAY_POLICY,
+    UNRESOLVED_DURATION_DISPLAY_POLICY,
+)
+from tennis_model.estimation.fitness_history import (  # noqa: E402
     assess_game_day_fitness,
     load_main_tour_fitness_history,
 )
-from tennis_model.estimation.game_day_elo import (
+from tennis_model.estimation.game_day_elo import (  # noqa: E402
     game_day_adjustment,
     load_game_day_elo_fit,
 )
-from tennis_model.locking import FIXED_100K_V1_POLICY, PathCountPolicy
-from tennis_model.props.settlement import ComparisonOperator
-from tennis_model.simulation import ACE_COMPARE, DF_COMPARE, DURATION_MIN, TIEBREAK_COUNT
+from tennis_model.locking import FIXED_100K_V1_POLICY, PathCountPolicy  # noqa: E402
+from tennis_model.props.settlement import ComparisonOperator  # noqa: E402
+from tennis_model.simulation import (  # noqa: E402
+    ACE_COMPARE,
+    DF_COMPARE,
+    DURATION_MIN,
+    TIEBREAK_COUNT,
+)
+from tennis_model.simulation.r32_props import R32_PROP_BUNDLE  # noqa: E402
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--fixture-file", type=Path)
@@ -50,6 +54,12 @@ parser.add_argument("--policy", choices=("smoke", "fixed"), default="fixed")
 parser.add_argument("--smoke-paths", type=int, default=5_000)
 parser.add_argument("--seed-offset", type=int, default=0)
 parser.add_argument("--workers", type=int, default=12)
+parser.add_argument("--checkpoint-paths", type=int, default=5_000)
+parser.add_argument(
+    "--checkpoint-root",
+    type=Path,
+    help="Reuse checkpointed paths from this root instead of storing them under --output.",
+)
 parser.add_argument("--round", default="R128")
 parser.add_argument("--schedule-date", type=date.fromisoformat, required=True)
 parser.add_argument("--schedule-source-id", required=True)
@@ -81,6 +91,8 @@ if args.smoke_paths <= 0:
     parser.error("--smoke-paths must be positive")
 if args.workers <= 0:
     parser.error("--workers must be positive")
+if args.checkpoint_paths <= 0:
+    parser.error("--checkpoint-paths must be positive")
 if Path(args.operational_name).name != args.operational_name:
     parser.error("--operational-name must be one path component")
 
@@ -120,205 +132,12 @@ else:
 
 output = args.output.resolve()
 output.mkdir(parents=True, exist_ok=True)
+checkpoint_root = (
+    args.checkpoint_root.resolve()
+    if args.checkpoint_root is not None
+    else output / "simulation-checkpoints"
+)
 
-
-def _prop_key(estimate: dict) -> str:
-    return json.dumps(estimate["prop"], sort_keys=True, separators=(",", ":"))
-
-
-def _submission_integer(probability: float) -> int:
-    rounded = int(math.floor(probability * 100.0 + 0.5))
-    return max(1, min(99, rounded))
-
-
-def _aggregate_parallel_reports(report_paths: list[Path]) -> dict:
-    payloads = [json.loads(path.read_text(encoding="utf-8")) for path in report_paths]
-    first = payloads[0]
-    match_ids = [str(item["official_match_id"]) for item in first["matches"]]
-    grouped = {match_id: [] for match_id in match_ids}
-    for payload, report_path in zip(payloads, report_paths, strict=True):
-        found = {str(item["official_match_id"]): item for item in payload["matches"]}
-        if set(found) != set(match_ids):
-            raise RuntimeError(f"parallel shard match set differs: {report_path}")
-        for match_id in match_ids:
-            grouped[match_id].append(found[match_id])
-
-    combined_matches = []
-    count_fields = (
-        "yes_paths",
-        "no_paths",
-        "void_paths",
-        "unresolved_paths",
-        "settled_paths",
-        "total_paths",
-    )
-    for match_id in match_ids:
-        shards = grouped[match_id]
-        snapshots = {item.get("snapshot_id") for item in shards}
-        if len(snapshots) != 1:
-            raise RuntimeError(f"parallel shard snapshots differ for match {match_id}")
-        baseline = deepcopy(shards[0])
-        prop_maps = [
-            {_prop_key(estimate): estimate for estimate in item["prop_estimates"]}
-            for item in shards
-        ]
-        keys = set(prop_maps[0])
-        if any(set(item) != keys for item in prop_maps[1:]):
-            raise RuntimeError(f"parallel shard props differ for match {match_id}")
-        estimates = []
-        for original in baseline["prop_estimates"]:
-            key = _prop_key(original)
-            estimate = deepcopy(original)
-            for field in count_fields:
-                estimate[field] = sum(int(item[key][field]) for item in prop_maps)
-            settled = int(estimate["settled_paths"])
-            total = int(estimate["total_paths"])
-            unresolved = int(estimate["unresolved_paths"])
-            yes = int(estimate["yes_paths"])
-            probability = yes / settled if settled else 0.0
-            estimate["probability_raw"] = probability
-            estimate["probability_settled"] = settled / total if total else 0.0
-            estimate["submitted_integer"] = _submission_integer(probability)
-            estimate["mc_standard_error"] = (
-                math.sqrt(probability * (1.0 - probability) / settled)
-                if settled
-                else 0.0
-            )
-            sensitivity_denominator = settled + unresolved
-            if estimate.get("sensitivity_low") is not None:
-                estimate["sensitivity_low"] = (
-                    yes / sensitivity_denominator if sensitivity_denominator else None
-                )
-            if estimate.get("sensitivity_high") is not None:
-                estimate["sensitivity_high"] = (
-                    (yes + unresolved) / sensitivity_denominator
-                    if sensitivity_denominator
-                    else None
-                )
-            estimates.append(estimate)
-        baseline["paths"] = sum(int(item["paths"]) for item in shards)
-        baseline["prop_estimates"] = estimates
-        baseline["mc_error"] = max(item["mc_standard_error"] for item in estimates)
-        baseline["parallel_workers"] = len(shards)
-        baseline["parallel_shard_reports"] = [str(path) for path in report_paths]
-        for stale in (
-            "lock_id",
-            "revision",
-            "content_sha256",
-            "verified_sha256",
-            "match_win_probability",
-            "exact_score_probability",
-        ):
-            baseline.pop(stale, None)
-        combined_matches.append(baseline)
-
-    return {
-        "schema_version": "aggregated-configured-usopen-match-batch/v2",
-        "created_at_utc": datetime.now(UTC).isoformat(),
-        "aggregation_method": "independent-fixed-shard-count-summation/v1",
-        "status": "PARALLEL_AGGREGATED_LOCK_SUMMARIES",
-        "paths_per_match": sum(int(item["matches"][0]["paths"]) for item in payloads),
-        "workers": len(payloads),
-        "seed_offsets": [int(item.get("seed_offset", 0)) for item in payloads],
-        "official_source_capture_id": first.get("official_source_capture_id"),
-        "exact_scope": "requested prop counts and probabilities",
-        "limitations": [
-            "path-level traces are retained in immutable shard locks rather than reconstructed",
-            "non-prop match-summary quantiles are retained in shard reports rather than aggregated",
-        ],
-        "shard_reports": [str(path) for path in report_paths],
-        "matches": combined_matches,
-    }
-
-
-if args.workers > 1:
-    if args.source_capture is None:
-        parser.error("--source-capture is required when --workers is greater than 1")
-    worker_count = min(args.workers, n_paths)
-    base_paths, remainder = divmod(n_paths, worker_count)
-    shard_root = output / "parallel-shards"
-    shard_root.mkdir(parents=False, exist_ok=False)
-
-    def _run_shard(index: int) -> Path:
-        shard_paths = base_paths + (1 if index < remainder else 0)
-        shard_output = shard_root / f"shard-{index + 1:02d}"
-        command = [
-            sys.executable,
-            str(Path(__file__).resolve()),
-            "--fixture-file",
-            str(args.fixture_file.resolve()),
-            "--output",
-            str(shard_output),
-            "--source-capture",
-            str(args.source_capture.resolve()),
-            "--base-run-id",
-            args.base_run_id,
-            "--operational-name",
-            args.operational_name,
-            "--policy",
-            "smoke",
-            "--smoke-paths",
-            str(shard_paths),
-            "--seed-offset",
-            str(args.seed_offset + index),
-            "--workers",
-            "1",
-            "--round",
-            args.round,
-            "--schedule-date",
-            args.schedule_date.isoformat(),
-            "--schedule-source-id",
-            args.schedule_source_id,
-            "--match-win-side",
-            args.match_win_side,
-            "--comparison-side",
-            args.comparison_side,
-            "--duration-threshold",
-            str(args.duration_threshold),
-            "--tiebreak-threshold",
-            str(args.tiebreak_threshold),
-        ]
-        for match_id in args.match_id:
-            command.extend(("--match-id", match_id))
-        if args.artifact_root is not None:
-            command.extend(("--artifact-root", str(args.artifact_root.resolve())))
-        completed = subprocess.run(
-            command,
-            cwd=repo,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        if completed.returncode:
-            raise RuntimeError(
-                f"parallel shard {index + 1} failed with exit {completed.returncode}:\n"
-                f"{completed.stdout}\n{completed.stderr}"
-            )
-        reports = list(shard_output.glob("batch-report-*.json"))
-        if len(reports) != 1:
-            raise RuntimeError(
-                f"parallel shard {index + 1} produced {len(reports)} batch reports"
-            )
-        return reports[0].resolve()
-
-    report_paths = []
-    with ThreadPoolExecutor(max_workers=worker_count) as executor:
-        futures = {executor.submit(_run_shard, index): index for index in range(worker_count)}
-        for future in as_completed(futures):
-            report_paths.append(future.result())
-    report_paths.sort()
-    aggregate = _aggregate_parallel_reports(report_paths)
-    digest = __import__("hashlib").sha256(
-        json.dumps(aggregate, sort_keys=True).encode("utf-8")
-    ).hexdigest()[:16]
-    aggregate_path = output / f"batch-report-{digest}.json"
-    aggregate_path.write_text(
-        json.dumps(aggregate, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
-    print(aggregate_path.resolve())
-    raise SystemExit(0)
 
 if args.source_capture is not None:
     capture, captured, cutoff = mod.load_captured_sources(args.source_capture.resolve())
@@ -390,38 +209,46 @@ snapshots = {
     )
     for tour in mod.Tour
 }
-v1_1_config_path = repo / "config/model_v1_1.yaml"
-v1_1_config_payload = v1_1_config_path.read_bytes()
-v1_1_config = yaml.safe_load(v1_1_config_payload)
-v1_1_config_hash = __import__("hashlib").sha256(v1_1_config_payload).hexdigest()
-fitness_config = v1_1_config["game_day_fitness"]
-fitness_fit_path = repo / str(fitness_config["fit_artifact"])
-fitness_fit_sha256 = mod.sha256_file(fitness_fit_path)
-fitness_fits = {
-    tour: load_game_day_elo_fit(fitness_fit_path, tour=tour.value)
-    for tour in mod.Tour
-}
-fitness_history = load_main_tour_fitness_history(
-    repo / str(fitness_config["history_source_directory"]),
-    source_years=tuple(int(value) for value in fitness_config["source_years"]),
-    tours=tuple(tour.value for tour in mod.Tour),
-    levels={
-        "ATP": ("A", "F", "G", "M"),
-        "WTA": ("35+H", "50+H", "F", "G", "I", "P", "PM", "W"),
-    },
-)
-snapshots = {
-    tour: mod.ModelSnapshot.model_validate(
-        {
-            **snapshot.model_dump(mode="python"),
-            "framework_version": "v1.1",
-            "framework_config_hash": v1_1_config_hash,
-        }
+framework_versions = {snapshot.framework_version for snapshot in snapshots.values()}
+if len(framework_versions) != 1:
+    raise RuntimeError(f"mixed operational framework versions: {framework_versions}")
+framework_version = next(iter(framework_versions))
+uses_v1_1 = framework_version in {"v1.1-candidate", "v1.1", "v1.2"}
+
+fitness_config = None
+fitness_fit_path = None
+fitness_fit_sha256 = None
+fitness_fits = None
+fitness_history = None
+if uses_v1_1:
+    v1_1_config_path = repo / (
+        "config/model_v1_2.yaml"
+        if framework_version == "v1.2"
+        else "config/model_v1_1.yaml"
     )
-    for tour, snapshot in snapshots.items()
-}
-if any(not snapshot.strength_complete for snapshot in snapshots.values()):
-    raise RuntimeError("production v1.1 requires strength-complete v4 snapshots")
+    v1_1_config_payload = v1_1_config_path.read_bytes()
+    v1_1_config = yaml.safe_load(v1_1_config_payload)
+    v1_1_config_hash = __import__("hashlib").sha256(v1_1_config_payload).hexdigest()
+    fitness_config = v1_1_config["game_day_fitness"]
+    fitness_fit_path = repo / str(fitness_config["fit_artifact"])
+    fitness_fit_sha256 = mod.sha256_file(fitness_fit_path)
+    fitness_fits = {
+        tour: load_game_day_elo_fit(fitness_fit_path, tour=tour.value)
+        for tour in mod.Tour
+    }
+    fitness_history = load_main_tour_fitness_history(
+        repo / str(fitness_config["history_source_directory"]),
+        source_years=tuple(int(value) for value in fitness_config["source_years"]),
+        tours=tuple(tour.value for tour in mod.Tour),
+        levels={
+            "ATP": ("A", "F", "G", "M"),
+            "WTA": ("35+H", "50+H", "F", "G", "I", "P", "PM", "W"),
+        },
+    )
+    if any(not snapshot.strength_complete for snapshot in snapshots.values()):
+        raise RuntimeError("production v1.1 requires strength-complete v4 snapshots")
+elif framework_version != "v1.0":
+    raise RuntimeError(f"unsupported operational framework version: {framework_version}")
 missing_duration_tours = sorted(
     {
         item["tour"].value
@@ -459,7 +286,7 @@ schedule_observed = min(
 results = []
 
 
-def retained_artifacts(tour, snapshot, eligibility_path, fitness_input_path):
+def retained_artifacts(tour, snapshot, eligibility_path, fitness_input_path=None):
     if (
         snapshot.retirement_artifact is None
         or snapshot.inactivity_configuration is None
@@ -506,16 +333,23 @@ def retained_artifacts(tour, snapshot, eligibility_path, fitness_input_path):
             "model_config",
             repo
             / (
-                "config/model_v1_1.yaml"
+                "config/model_v1_2.yaml"
+                if snapshot.framework_version == "v1.2"
+                else "config/model_v1_1.yaml"
                 if snapshot.framework_version in {"v1.1-candidate", "v1.1"}
                 else "config/model_v1.yaml"
             ),
         ),
         mod.retained_record("settlement_policy", settlement_path),
         mod.retained_record("code_archive", code_zip),
-        mod.retained_record("fitness_fit", fitness_fit_path),
-        mod.retained_record("fitness_input", fitness_input_path),
     ]
+    if fitness_fit_path is not None and fitness_input_path is not None:
+        records.extend(
+            (
+                mod.retained_record("fitness_fit", fitness_fit_path),
+                mod.retained_record("fitness_input", fitness_input_path),
+            )
+        )
     if snapshot.strength_complete:
         if (
             snapshot.strength_anchor_artifact is None
@@ -569,69 +403,106 @@ for item in selected_matches:
     if start_adjusted_from_status_b:
         start = cutoff + timedelta(microseconds=1)
 
-    assessments = tuple(
-        assess_game_day_fitness(
-            fitness_history,
-            tour=tour.value,
-            player_name=str(player["name"]),
-            scheduled_local_date=args.schedule_date,
-            information_cutoff_utc=cutoff,
-            config=fitness_config,
+    fitness_input_path = None
+    fitness_conditions = ()
+    fitness_information = ()
+    if uses_v1_1:
+        assessments = tuple(
+            assess_game_day_fitness(
+                fitness_history,
+                tour=tour.value,
+                player_name=str(player["name"]),
+                scheduled_local_date=args.schedule_date,
+                information_cutoff_utc=cutoff,
+                config=fitness_config,
+            )
+            for player in (left, right)
         )
-        for player in (left, right)
-    )
-    adjustments = tuple(
-        0.0
-        if assessment.features is None
-        else game_day_adjustment(
-            assessment.features,
-            fitness_fits[tour].weights_elo,
+        adjustments = tuple(
+            0.0
+            if assessment.features is None
+            else game_day_adjustment(
+                assessment.features,
+                fitness_fits[tour].weights_elo,
+            )
+            for assessment in assessments
         )
-        for assessment in assessments
-    )
-    fitness_input_path = output / "retained" / f"game_day_fitness_{official_id}.json"
-    mod.write_immutable(
-        fitness_input_path,
-        mod.canonical_bytes(
-            {
-                "schema_version": "game-day-fitness-input/v1",
-                "framework_version": "v1.1",
-                "fit_artifact_sha256": fitness_fit_sha256,
-                "tour": tour.value,
-                "information_cutoff_utc": cutoff.isoformat(),
-                "scheduled_local_date": args.schedule_date.isoformat(),
-                "players": [
-                    {
-                        "player_id": str(player["id"]),
-                        "player_name": str(player["name"]),
-                        "available": assessment.available,
-                        "reason": assessment.reason,
-                        "last_match_date": (
-                            None
-                            if assessment.last_match_date is None
-                            else assessment.last_match_date.isoformat()
-                        ),
-                        "recent_match_count": assessment.recent_match_count,
-                        "features": (
-                            None
-                            if assessment.features is None
-                            else {
-                                "recent_workload": assessment.features.recent_workload,
-                                "short_recovery": assessment.features.short_recovery,
-                                "return_from_layoff": assessment.features.return_from_layoff,
-                            }
-                        ),
-                        "adjustment_elo": adjustment,
-                    }
-                    for player, assessment, adjustment in zip(
-                        (left, right), assessments, adjustments, strict=True
-                    )
-                ],
-                "source_manifest": fitness_history.source_manifest,
-            }
-        ),
-    )
-    fitness_input_sha256 = mod.sha256_file(fitness_input_path)
+        fitness_input_path = output / "retained" / f"game_day_fitness_{official_id}.json"
+        mod.write_immutable(
+            fitness_input_path,
+            mod.canonical_bytes(
+                {
+                    "schema_version": "game-day-fitness-input/v1",
+                    "framework_version": "v1.1",
+                    "fit_artifact_sha256": fitness_fit_sha256,
+                    "tour": tour.value,
+                    "information_cutoff_utc": cutoff.isoformat(),
+                    "scheduled_local_date": args.schedule_date.isoformat(),
+                    "players": [
+                        {
+                            "player_id": str(player["id"]),
+                            "player_name": str(player["name"]),
+                            "available": assessment.available,
+                            "reason": assessment.reason,
+                            "last_match_date": (
+                                None
+                                if assessment.last_match_date is None
+                                else assessment.last_match_date.isoformat()
+                            ),
+                            "recent_match_count": assessment.recent_match_count,
+                            "features": (
+                                None
+                                if assessment.features is None
+                                else {
+                                    "recent_workload": assessment.features.recent_workload,
+                                    "short_recovery": assessment.features.short_recovery,
+                                    "return_from_layoff": assessment.features.return_from_layoff,
+                                }
+                            ),
+                            "adjustment_elo": adjustment,
+                        }
+                        for player, assessment, adjustment in zip(
+                            (left, right), assessments, adjustments, strict=True
+                        )
+                    ],
+                    "source_manifest": fitness_history.source_manifest,
+                }
+            ),
+        )
+        fitness_input_sha256 = mod.sha256_file(fitness_input_path)
+        fitness_conditions = (
+            mod.MatchCondition(
+                name="game_day_fitness_artifact_sha256",
+                value=fitness_fit_sha256,
+            ),
+            mod.MatchCondition(
+                name="game_day_fitness_status_player_a",
+                value="available" if assessments[0].available else "unavailable",
+            ),
+            mod.MatchCondition(
+                name="game_day_fitness_status_player_b",
+                value="available" if assessments[1].available else "unavailable",
+            ),
+            mod.MatchCondition(name="game_day_elo_adjustment_player_a", value=adjustments[0]),
+            mod.MatchCondition(name="game_day_elo_adjustment_player_b", value=adjustments[1]),
+        )
+        fitness_information = tuple(
+            mod.InformationItem(
+                category="workload",
+                summary=(
+                    f"Production v1.1 game-day fitness for {player['name']}: "
+                    f"status={'available' if assessment.available else 'unavailable'}; "
+                    f"temporary Elo adjustment={adjustment:.6f}"
+                ),
+                source_id=f"game-day-fitness-v1.1-{official_id}-{player['id']}",
+                source_sha256=fitness_input_sha256,
+                observed_at_utc=cutoff - timedelta(microseconds=1),
+                available_at_utc=cutoff - timedelta(microseconds=1),
+            )
+            for player, assessment, adjustment in zip(
+                (left, right), assessments, adjustments, strict=True
+            )
+        )
 
     context = mod.MatchContext(
         player_a_id=str(left["id"]),
@@ -665,26 +536,7 @@ for item in selected_matches:
                     else "official schedule anchor"
                 ),
             ),
-            mod.MatchCondition(
-                name="game_day_fitness_artifact_sha256",
-                value=fitness_fit_sha256,
-            ),
-            mod.MatchCondition(
-                name="game_day_fitness_status_player_a",
-                value="available" if assessments[0].available else "unavailable",
-            ),
-            mod.MatchCondition(
-                name="game_day_fitness_status_player_b",
-                value="available" if assessments[1].available else "unavailable",
-            ),
-            mod.MatchCondition(
-                name="game_day_elo_adjustment_player_a",
-                value=adjustments[0],
-            ),
-            mod.MatchCondition(
-                name="game_day_elo_adjustment_player_b",
-                value=adjustments[1],
-            ),
+            *fitness_conditions,
         ),
         information_cutoff_utc=cutoff,
         information_scenario_id="central",
@@ -724,23 +576,7 @@ for item in selected_matches:
                 )
                 for key in (str(item["a"]), str(item["b"]))
             ),
-            *(
-                mod.InformationItem(
-                    category="workload",
-                    summary=(
-                        f"Production v1.1 game-day fitness for {player['name']}: "
-                        f"status={'available' if assessment.available else 'unavailable'}; "
-                        f"temporary Elo adjustment={adjustment:.6f}"
-                    ),
-                    source_id=f"game-day-fitness-v1.1-{official_id}-{player['id']}",
-                    source_sha256=fitness_input_sha256,
-                    observed_at_utc=cutoff - timedelta(microseconds=1),
-                    available_at_utc=cutoff - timedelta(microseconds=1),
-                )
-                for player, assessment, adjustment in zip(
-                    (left, right), assessments, adjustments, strict=True
-                )
-            ),
+            *fitness_information,
         ),
         player_inactivity=c6,
         missing_current_conditions=("roof state",),
@@ -780,17 +616,57 @@ for item in selected_matches:
         match_win_player = right if match_win_side == "right" else left
         comparison_player = right if comparison_side == "right" else left
         comparison_opponent = left if comparison_side == "right" else right
-        requested_props = (
-            mod.MATCH_WIN(str(match_win_player["id"])),
-            ACE_COMPARE(str(comparison_player["id"]), str(comparison_opponent["id"])),
-            DF_COMPARE(str(comparison_player["id"]), str(comparison_opponent["id"])),
-            TIEBREAK_COUNT(ComparisonOperator.AT_LEAST, tiebreak_threshold),
-            DURATION_MIN(
-                ComparisonOperator.MORE_THAN,
-                duration_threshold,
-                display_conversion_version=NEAREST_DURATION_DISPLAY_POLICY.policy_version,
-            ),
+        duration_display_policy = (
+            UNRESOLVED_DURATION_DISPLAY_POLICY
+            if execution_mode == "production"
+            else NEAREST_DURATION_DISPLAY_POLICY
         )
+        if str(prop_config.get("bundle", "standard")) == "r32":
+            def player_for_side(side_key: str, default: str):
+                side = str(prop_config.get(side_key, default))
+                if side not in {"left", "right"}:
+                    raise RuntimeError(f"fixture {side_key} must be left or right")
+                return right if side == "right" else left
+
+            unforced_error_player = player_for_side(
+                "unforced_error_side", comparison_side
+            )
+            first_serve_player = player_for_side(
+                "first_serve_side", "left" if comparison_side == "right" else "right"
+            )
+            winner_player = player_for_side("winner_side", comparison_side)
+            winner_opponent = left if winner_player is right else right
+            requested_props = R32_PROP_BUNDLE(
+                duration_minutes=duration_threshold,
+                ace_subject=str(comparison_player["id"]),
+                ace_opponent=str(comparison_opponent["id"]),
+                double_fault_subject=str(comparison_player["id"]),
+                double_fault_opponent=str(comparison_opponent["id"]),
+                unforced_error_subject=str(unforced_error_player["id"]),
+                unforced_error_threshold=float(
+                    prop_config["unforced_error_threshold"]
+                ),
+                first_serve_subject=str(first_serve_player["id"]),
+                first_serve_threshold_pct=float(
+                    prop_config["first_serve_threshold_pct"]
+                ),
+                winner_subject=str(winner_player["id"]),
+                winner_opponent=str(winner_opponent["id"]),
+                match_win_subject=str(match_win_player["id"]),
+                tiebreak_threshold=tiebreak_threshold,
+            )
+        else:
+            requested_props = (
+                mod.MATCH_WIN(str(match_win_player["id"])),
+                ACE_COMPARE(str(comparison_player["id"]), str(comparison_opponent["id"])),
+                DF_COMPARE(str(comparison_player["id"]), str(comparison_opponent["id"])),
+                TIEBREAK_COUNT(ComparisonOperator.AT_LEAST, tiebreak_threshold),
+                DURATION_MIN(
+                    ComparisonOperator.MORE_THAN,
+                    duration_threshold,
+                    display_conversion_version=duration_display_policy.policy_version,
+                ),
+            )
         lock = mod.create_prediction_lock(
             snapshots[tour],
             context,
@@ -808,7 +684,11 @@ for item in selected_matches:
             canonical_match_identity=canonical,
             retained_artifacts=artifacts,
             training_eligibility=eligibility[tour],
-            duration_display_policy=NEAREST_DURATION_DISPLAY_POLICY,
+            duration_display_policy=duration_display_policy,
+            simulation_workers=args.workers,
+            simulation_checkpoint_dir=checkpoint_root / official_id,
+            simulation_checkpoint_paths=args.checkpoint_paths,
+            simulation_progress=True,
         )
     verified = store.verify(lock.base_lock_id, lock.revision)
     player_names = {str(left["id"]): str(left["name"]), str(right["id"]): str(right["name"])}
@@ -898,6 +778,9 @@ report = {
     "refit_performed": False,
     "execution_mode": execution_mode,
     "seed_offset": args.seed_offset,
+    "simulation_workers": args.workers,
+    "simulation_checkpoint_paths": args.checkpoint_paths,
+    "simulation_checkpoint_root": str(checkpoint_root),
     "path_count_policy": mod.asdict(path_policy),
     "status": (
         "FIXED_100K_PRODUCTION_LOCKS"

@@ -27,7 +27,7 @@ need approval for this command.
 .venv\Scripts\python.exe scripts/refresh_current_from_verified_bundles.py `
   --repo . `
   --capture <capture-path> `
-  --historical-root .runtime-worktree-81aa8db/data/processed/current-usopen-2026-exact-date `
+  --historical-root <historical-data-root> `
   --output-root artifacts/current-usopen-2026 `
   --deterministic-test-result-sha256 <test-receipt-sha256>
 ```

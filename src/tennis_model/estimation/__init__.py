@@ -121,3 +121,15 @@ __all__ = [
     "validate_serve_fit_bundle",
     "write_fit_artifact",
 ]
+
+from tennis_model.estimation.rally_termination import (
+    ACCOUNTING_CONVENTION as RALLY_ACCOUNTING_CONVENTION,
+    RallyMatchParameters,
+    RallyTerminationArtifact,
+)
+from tennis_model.estimation.rally_posterior import (
+    SequentialRallyPosteriorArtifact,
+    activate_posterior,
+    load_active_posterior,
+    update_posterior,
+)

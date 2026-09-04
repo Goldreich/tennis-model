@@ -105,6 +105,7 @@ from tennis_model.simulation.match import (
     _simulate_one_path,
     simulate_matches,
 )
+from tennis_model.simulation.parallel import simulate_matches_parallel
 from tennis_model.simulation.parameters import (
     BetaComponentParameters,
     MatchCondition,
@@ -416,6 +417,39 @@ def test_match_simulator_path_ranges_reproduce_one_full_seed_prefix(
 
     assert first.paths + extension.paths == full.paths
     assert extension.provenance["path_start"] == 3
+
+
+def test_checkpointed_parallel_simulation_reproduces_serial_paths_and_resumes(
+    match_fixture: _MatchFixture,
+    tmp_path: Path,
+) -> None:
+    serial = simulate_matches(match_fixture.distribution, n_paths=8, seed=7603)
+    checkpoint_dir = tmp_path / "parallel-checkpoints"
+    parallel = simulate_matches_parallel(
+        match_fixture.distribution,
+        n_paths=8,
+        seed=7603,
+        workers=2,
+        checkpoint_dir=checkpoint_dir,
+        checkpoint_paths=2,
+        duration_display_policy=UNRESOLVED_DURATION_DISPLAY_POLICY,
+    )
+    resumed = simulate_matches_parallel(
+        match_fixture.distribution,
+        n_paths=8,
+        seed=7603,
+        workers=2,
+        checkpoint_dir=checkpoint_dir,
+        checkpoint_paths=2,
+        duration_display_policy=UNRESOLVED_DURATION_DISPLAY_POLICY,
+    )
+
+    assert parallel.paths == serial.paths
+    assert resumed.paths == serial.paths
+    assert parallel.seed_id == serial.seed_id
+    assert parallel.provenance["parallel_workers"] == 2
+    assert parallel.provenance["checkpoint_paths"] == 2
+    assert len(tuple(checkpoint_dir.glob("chunk-*.pickle"))) == 4
 
 
 def test_c6_active_records_preserve_parameter_and_performance_draws_bit_for_bit(

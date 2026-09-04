@@ -116,3 +116,43 @@ __all__ = [
     "integer_submission_preview",
     "prop_generation_available",
 ]
+
+# --- v1.2 rally-termination settlement support ------------------------------
+_RALLY_ACCOUNTING_CONVENTION = (
+    "usopen-winners-include-aces-ue-include-double-faults/v1"
+)
+_assess_prop_support_without_rally = assess_prop_support
+_prop_generation_available_without_rally = prop_generation_available
+
+
+def assess_prop_support(
+    prop: PropSpec | BooleanCompositeSpec,
+    *,
+    duration_available: bool = False,
+) -> PropSupportDecision:
+    if not isinstance(prop, BooleanCompositeSpec) and prop.kind in _AUXILIARY_UNAVAILABLE:
+        if prop.scope.get("accounting_convention") != _RALLY_ACCOUNTING_CONVENTION:
+            return _disabled(
+                PropSupportStatus.POLICY_DISABLED,
+                "WINNER_UE_ACCOUNTING_CONVENTION_REQUIRED",
+                "winner/UE props require the active official accounting convention",
+            )
+        return PropSupportDecision(status=PropSupportStatus.SUPPORTED)
+    return _assess_prop_support_without_rally(
+        prop, duration_available=duration_available
+    )
+
+
+def prop_generation_available(
+    prop: PropSpec | BooleanCompositeSpec,
+    *,
+    duration_available: bool = False,
+) -> bool:
+    if not isinstance(prop, BooleanCompositeSpec) and prop.kind in _AUXILIARY_UNAVAILABLE:
+        return (
+            prop.scope.get("accounting_convention")
+            == _RALLY_ACCOUNTING_CONVENTION
+        )
+    return _prop_generation_available_without_rally(
+        prop, duration_available=duration_available
+    )

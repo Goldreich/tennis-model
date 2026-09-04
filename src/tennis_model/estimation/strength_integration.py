@@ -9,18 +9,18 @@ import shutil
 import tempfile
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from math import exp, isfinite, log, sqrt
+from math import exp, log, sqrt
 from pathlib import Path
 from typing import Annotated, Any, Literal, Self
 
 import numpy as np
 from pydantic import ConfigDict, Field, field_validator, model_validator
-from scipy.optimize import minimize  # type: ignore[import-untyped]
+from scipy.optimize import brentq, minimize  # type: ignore[import-untyped]
 
 from tennis_model.estimation.strength import StrengthPrediction
+from tennis_model.exact_probability import exact_match_win_probability
 from tennis_model.schemas import FrozenModel, Tour
 from tennis_model.serve import PrimitiveServeMeans
-from tennis_model.exact_probability import exact_match_win_probability
 
 
 class StrengthIntegrationError(ValueError):
@@ -282,10 +282,17 @@ def create_fixed_strength_integration(
     )
 
 
-def _decode(raw: np.ndarray[Any, np.dtype[np.float64]]) -> tuple[float, np.ndarray[Any, np.dtype[np.float64]]]:
+def _decode(
+    raw: np.ndarray[Any, np.dtype[np.float64]],
+) -> tuple[float, np.ndarray[Any, np.dtype[np.float64]]]:
     beta = exp(float(raw[0]))
     eta = np.asarray(
-        [float(raw[1]), _softplus(float(raw[2])), _softplus(float(raw[3])), _softplus(float(raw[4]))],
+        [
+            float(raw[1]),
+            _softplus(float(raw[2])),
+            _softplus(float(raw[3])),
+            _softplus(float(raw[4])),
+        ],
         dtype=np.float64,
     )
     return beta, eta
@@ -409,7 +416,10 @@ def fit_strength_integration(
             optimizer_status=int(result.status),
             optimizer_message=str(result.message),
             iterations=int(getattr(result, "nit", 0)),
-            mean_brier=sum((p - y) ** 2 for p, y in zip(probabilities, outcomes, strict=True)) / len(rows),
+            mean_brier=(
+                sum((p - y) ** 2 for p, y in zip(probabilities, outcomes, strict=True))
+                / len(rows)
+            ),
             mean_log_loss=sum(
                 -(y * log(max(1e-12, p)) + (1.0 - y) * log(max(1e-12, 1.0 - p)))
                 for p, y in zip(probabilities, outcomes, strict=True)
@@ -466,6 +476,29 @@ def solve_q_tilt(
         return lower, lower_value, True
     if target_logit >= upper_value:
         return upper, upper_value, True
+
+    def residual(delta: float) -> float:
+        return attained(delta) - target_logit
+
+    # Brent's method preserves the specification's deterministic bracketed-root
+    # contract while avoiding roughly thirty full exact-scoring evaluations per
+    # ordinary draw. Verify the configured attained-logit tolerance explicitly;
+    # the fixed bisection fallback retains the prior numerical behavior if a
+    # particularly flat mapping defeats the x-space stopping criterion.
+    root = float(
+        brentq(
+            residual,
+            lower,
+            upper,
+            xtol=max(5e-324, config.root_tolerance * 0.01),
+            rtol=4.0 * np.finfo(np.float64).eps,
+            maxiter=100,
+        )
+    )
+    root_value = attained(root)
+    if abs(root_value - target_logit) <= config.root_tolerance:
+        return root, root_value, False
+
     for _ in range(100):
         midpoint = (lower + upper) / 2.0
         value = attained(midpoint)
@@ -518,7 +551,7 @@ def prepare_strength_match_parameters(
         config=integration.config,
     )
     step = 1e-4
-    _plus_tilt, plus, _ = solve_q_tilt(
+    _plus_tilt, _plus, _ = solve_q_tilt(
         player_a,
         player_b,
         target_logit=attained + step,
@@ -530,7 +563,10 @@ def prepare_strength_match_parameters(
         (1.0 - gate) ** 2 * component_variance
         + gate**2 * anchor.variance_logit
     )
-    tilt_sd = min(integration.config.maximum_absolute_tilt, sqrt(target_variance) / max(1e-8, derivative))
+    tilt_sd = min(
+        integration.config.maximum_absolute_tilt,
+        sqrt(target_variance) / max(1e-8, derivative),
+    )
     return StrengthMatchParameters(
         anchor_artifact_id=anchor_artifact_id,
         integration_artifact_id=integration_artifact_id,
@@ -700,6 +736,7 @@ __all__ = [
     "StrengthIntegrationError",
     "StrengthIntegrationFit",
     "StrengthMatchParameters",
+    "create_fixed_strength_integration",
     "fit_strength_integration",
     "integrate_serve_performance",
     "load_strength_integration_artifact",
@@ -707,5 +744,4 @@ __all__ = [
     "reliability_weight",
     "solve_q_tilt",
     "write_strength_integration_artifact",
-    "create_fixed_strength_integration",
 ]

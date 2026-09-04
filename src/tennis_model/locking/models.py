@@ -1113,7 +1113,7 @@ class PredictionSnapshot(LockModel):
     parent_revision: int | None = Field(default=None, ge=1)
     parent_content_sha256: str | None = None
     revision_reason: LockRevisionReason
-    framework_version: Literal["v1.0", "v1.1-candidate", "v1.1"]
+    framework_version: Literal["v1.0", "v1.1-candidate", "v1.1", "v1.2"]
     settlement_policy: SettlementPolicyRecord
     context: MatchContext
     information: InformationBundle
@@ -1237,8 +1237,15 @@ class PredictionSnapshot(LockModel):
             }
             if self.schema_version == "prediction-lock/v4":
                 required_artifact_kinds.add("duration_fit")
-            if self.framework_version in {"v1.1-candidate", "v1.1"}:
-                required_artifact_kinds.update({"strength_fit", "strength_integration"})
+            if self.framework_version in {"v1.1-candidate", "v1.1", "v1.2"}:
+                required_artifact_kinds.update(
+                    {
+                        "fitness_fit",
+                        "fitness_input",
+                        "strength_fit",
+                        "strength_integration",
+                    }
+                )
             if {item.kind for item in self.retained_artifacts} != required_artifact_kinds:
                 raise ValueError("v3 locks require one retained artifact for every required kind")
             if len({item.artifact_id for item in self.retained_artifacts}) != len(

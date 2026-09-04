@@ -419,7 +419,7 @@ class _C6ComponentPlan:
 
 
 class MatchParameterProvenance(_ParameterModel):
-    framework_version: Literal["v1.0", "v1.1-candidate", "v1.1"]
+    framework_version: Literal["v1.0", "v1.1-candidate", "v1.1", "v1.2"]
     implementation_version: Literal[
         "match-parameters-laplace-beta/v1",
         "match-parameters-strength-integrated/v1",
@@ -484,7 +484,7 @@ class MatchParameterProvenance(_ParameterModel):
         )
         if (strength_ids[0] is None) != (strength_ids[1] is None):
             raise ValueError("v1.1 strength provenance IDs must be present together")
-        if self.framework_version in {"v1.1-candidate", "v1.1"}:
+        if self.framework_version in {"v1.1-candidate", "v1.1", "v1.2"}:
             if any(item is None for item in strength_ids):
                 raise ValueError("v1.1 provenance requires strength artifacts")
             if self.implementation_version != V11_MATCH_PARAMETER_IMPLEMENTATION_VERSION:
@@ -785,6 +785,7 @@ class MatchParameterDistribution:
     c6_component_plans: tuple[_C6ComponentPlan, ...] = ()
     strength: StrengthMatchParameters | None = None
     strength_integration_fit: StrengthIntegrationArtifactFit | None = None
+    rally_termination: Any | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -1749,6 +1750,12 @@ def estimate_match(
             anchor_fit, strength_integration_fit = load_snapshot_v1_1_artifacts(snapshot)
         except ModelSnapshotError as exc:
             raise MatchParameterError(f"cannot load v1.1 artifacts: {exc}") from exc
+        if anchor_fit.information_cutoff_utc > context.information_cutoff_utc:
+            raise MatchParameterError("strength anchor contains information after the match cutoff")
+        if strength_integration_fit.training_cutoff_utc > context.information_cutoff_utc:
+            raise MatchParameterError(
+                "strength integration contains information after the match cutoff"
+            )
         prediction_function = (
             predict_surface_elo if isinstance(anchor_fit, SurfaceEloFit) else predict_strength
         )
@@ -1760,7 +1767,7 @@ def estimate_match(
             best_of=context.best_of,
             scheduled_start_utc=context.scheduled_start_utc,
         )
-        if snapshot.framework_version == "v1.1":
+        if snapshot.framework_version in {"v1.1", "v1.2"}:
             if not isinstance(anchor_fit, SurfaceEloFit):
                 raise MatchParameterError("production v1.1 requires the surface-Elo anchor")
             condition_values = {item.name: item.value for item in context.conditions}
@@ -2523,3 +2530,30 @@ __all__ = [
     "sample_posterior_parameters",
     "sample_serve_performance",
 ]
+
+# --- v1.2 rally-termination extension ---------------------------------------
+_estimate_match_without_rally = estimate_match
+
+
+def estimate_match(
+    snapshot: ModelSnapshot,
+    context: MatchContext,
+    **kwargs: Any,
+) -> MatchParameterDistribution:
+    from dataclasses import replace as _replace
+    from tennis_model.estimation.rally_termination import (
+        prepare_production_match_parameters,
+    )
+
+    distribution = _estimate_match_without_rally(snapshot, context, **kwargs)
+    if snapshot.framework_version != "v1.2":
+        return distribution
+    try:
+        rally = prepare_production_match_parameters(context)
+    except FileNotFoundError:
+        return distribution
+    except ValueError as exc:
+        if "information cutoff" in str(exc):
+            return distribution
+        raise
+    return _replace(distribution, rally_termination=rally)

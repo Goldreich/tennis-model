@@ -1,0 +1,73 @@
+framework_version: v1.2
+schema_version: tennis-model-v1.2-config/v1
+inherits: config/model_v1_1.yaml
+base_framework_version: v1.1
+selected_strength_anchor: surface_elo
+
+surface_elo_anchor:
+  schema_version: surface-elo-config/v1
+  initial_rating: 1500.0
+  k_factor: 16.0
+  surface_weight: 0.5
+  rating_scale: 400.0
+  deterministic_logit_variance_floor: 0.000000000001
+
+surface_elo_integration:
+  anchor_weight: 0.75
+  component_weight: 0.25
+  selection_reference: rolling-origin surface-Elo validation completed before activation
+
+game_day_fitness:
+  enabled: true
+  schema_version: game-day-elo-fit/v1
+  fit_artifact: artifacts/production/tennis-model-v1.1/game_day_elo_fit.json
+  history_source_directory: data/elo-main-tour-current/source/tennismylife
+  source_years: [2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]
+  workload_lookback_days: 21
+  workload_short_half_life_days: 3.0
+  workload_long_half_life_days: 14.0
+  workload_short_weight: 0.70
+  workload_unit_minutes: 300.0
+  normal_recovery_days: 2.0
+  layoff_threshold_days: 42.0
+  layoff_unit_days: 30.0
+  return_decay_matches: 3.0
+  missing_minutes_policy: explicit_unavailable_zero_adjustment
+
+strength_integration:
+  schema_version: strength-integration-config/v1
+  l2_penalty: 1.0
+  reliability_prior_logit: -1.3862943611198906
+  maximum_absolute_tilt: 3.0
+  root_tolerance: 0.00000001
+  probability_bound: 0.000001
+  coefficient_draws_for_summary: 256
+  q1_weight: 1.0
+  q2_weight: 1.0
+
+optional_features:
+  ranking_sparse_prior: false
+  dynamic_level_change: false
+  head_to_head_interaction: false
+
+market_inputs:
+  permitted: false
+
+rally_termination:
+  enabled: true
+  schema_version: rally-termination-posterior/v2
+  initialization_schema_version: rally-termination-fit/v1
+  accounting_convention: usopen-winners-include-aces-ue-include-double-faults/v1
+  atp_artifact: artifacts/production/tennis-model-v1.2/rally_termination_atp.json
+  wta_artifact: artifacts/production/tennis-model-v1.2/rally_termination_wta.json
+  atp_active_pointer: artifacts/production/tennis-model-v1.2/rally_termination_atp_current.json
+  wta_active_pointer: artifacts/production/tennis-model-v1.2/rally_termination_wta_current.json
+  posterior_root: artifacts/production/tennis-model-v1.2/rally-posterior
+  posterior_update: sequential-laplace-multinomial-logit/v1
+  posterior_predictive_sampling: true
+  fixed_during_updates: [tour_intercepts, player_effect_prior_sd, dirichlet_concentration]
+  fit_source: immutable_official_us_open_completed_match_statistics
+  player_effect_prior_sd: 0.35
+  unknown_player_policy: tour_baseline
+  event_generation: aggregate_post_path_classification
+  existing_prop_invariance: true

@@ -225,7 +225,7 @@ class ModelSnapshot(FrozenModel):
         "serve-model-snapshot/v3",
         "serve-model-snapshot/v4",
     ] = "serve-model-snapshot/v1"
-    framework_version: Literal["v1.0", "v1.1-candidate", "v1.1"]
+    framework_version: Literal["v1.0", "v1.1-candidate", "v1.1", "v1.2"]
     implementation_version: Literal["serve-components-map-laplace/v1"]
     tour: Tour
     fitted_at_utc: datetime
@@ -316,7 +316,7 @@ class ModelSnapshot(FrozenModel):
             ):
                 raise ValueError("snapshot duration reference differs from its tour or cutoff")
         if self.schema_version == "serve-model-snapshot/v4":
-            if self.framework_version not in {"v1.1-candidate", "v1.1"}:
+            if self.framework_version not in {"v1.1-candidate", "v1.1", "v1.2"}:
                 raise ValueError("v4 snapshot must identify a v1.1 framework")
             if (
                 self.duration_artifact is None
@@ -334,13 +334,20 @@ class ModelSnapshot(FrozenModel):
                 raise ValueError("v4 integration reference has the wrong kind")
             if any(
                 item.tour is not self.tour
-                or item.information_cutoff_utc > self.data_cutoff_utc
                 for item in (
                     self.strength_anchor_artifact,
                     self.strength_integration_artifact,
                 )
             ):
                 raise ValueError("v1.1 artifacts differ from snapshot tour or cutoff")
+            if self.strength_integration_artifact.information_cutoff_utc > self.data_cutoff_utc:
+                raise ValueError("v1.1 integration artifact exceeds the component cutoff")
+            if (
+                self.framework_version != "v1.2"
+                and self.strength_anchor_artifact.information_cutoff_utc
+                > self.data_cutoff_utc
+            ):
+                raise ValueError("pre-v1.2 strength anchor exceeds the component cutoff")
         elif any(
             item is not None
             for item in (
@@ -782,4 +789,55 @@ __all__ = [
     "load_snapshot_retirement_artifact",
     "load_snapshot_v1_1_artifacts",
     "load_v1_1_strength_anchor_artifact",
+    "revise_v1_2_strength_anchor",
 ]
+
+def create_v1_2_snapshot(
+    base_snapshot: ModelSnapshot,
+    *,
+    framework_config_hash: str,
+) -> ModelSnapshot:
+    """Create a v1.2 snapshot that immutably inherits frozen v1.1 state."""
+    if base_snapshot.framework_version != "v1.1":
+        raise ModelSnapshotError("v1.2 must inherit a frozen v1.1 snapshot")
+
+    payload = base_snapshot.model_dump(mode="python")
+    payload.update(
+        framework_version="v1.2",
+        base_snapshot_id=base_snapshot.snapshot_id,
+        framework_config_hash=_sha256(
+            framework_config_hash, field="framework_config_hash"
+        ),
+    )
+    return ModelSnapshot.model_validate(payload)
+
+
+def revise_v1_2_strength_anchor(
+    snapshot: ModelSnapshot,
+    *,
+    strength_anchor: PersistedSurfaceEloArtifact,
+) -> ModelSnapshot:
+    """Return a new v1.2 snapshot referencing a later immutable Elo state."""
+    if snapshot.framework_version != "v1.2":
+        raise ModelSnapshotError("live strength-anchor revisions require v1.2")
+    if strength_anchor.fit.tour is not snapshot.tour:
+        raise ModelSnapshotError("live strength anchor belongs to another tour")
+    if snapshot.strength_anchor_artifact is None:
+        raise ModelSnapshotError("v1.2 snapshot has no inherited strength anchor")
+    if (
+        strength_anchor.fit.information_cutoff_utc
+        <= snapshot.strength_anchor_artifact.information_cutoff_utc
+    ):
+        raise ModelSnapshotError("live strength anchor must advance the prior cutoff")
+
+    payload = snapshot.model_dump(mode="python")
+    payload["strength_anchor_artifact"] = V11ArtifactReference(
+        kind="strength_anchor",
+        artifact_id=strength_anchor.artifact_id,
+        directory=strength_anchor.directory,
+        tour=strength_anchor.fit.tour,
+        information_cutoff_utc=strength_anchor.fit.information_cutoff_utc,
+        fitted_at_utc=strength_anchor.fit.fitted_at_utc,
+        artifact_schema_version=strength_anchor.fit.schema_version,
+    )
+    return ModelSnapshot.model_validate(payload)
