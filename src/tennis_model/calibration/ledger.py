@@ -346,7 +346,16 @@ def ledger_rows_from_settlement(
         if (forecast is None) == (gate is None):
             raise LedgerError("settlement prop is absent or duplicated across lock estimates/gates")
         binary = resolution.outcome_binary
-        probability_raw = None if forecast is None else forecast.probability_raw
+        market_override = (
+            forecast is not None
+            and lock.market_match_winner is not None
+            and forecast.prop.kind == "MATCH_WIN"
+        )
+        probability_raw = (
+            None
+            if forecast is None
+            else lock.effective_prop_probability(forecast.prop_id)
+        )
         brier_raw = (
             None if binary is None or probability_raw is None else (probability_raw - binary) ** 2
         )
@@ -356,7 +365,14 @@ def ledger_rows_from_settlement(
             forecast is not None
             and resolution.support_status is PropSupportStatus.SUPPORTED
         ):
-            if forecast.platform_submission_integer is not None:
+            if market_override:
+                submitted_integer = lock.effective_prop_submission_integer(forecast.prop_id)
+                rounding_policy = (
+                    lock.market_match_winner.submission_rounding_policy_version
+                    if lock.market_match_winner is not None
+                    else None
+                )
+            elif forecast.platform_submission_integer is not None:
                 submitted_integer = forecast.platform_submission_integer
                 rounding_policy = forecast.platform_submission_policy_version
             elif forecast.submitted_integer is not None:
@@ -402,9 +418,11 @@ def ledger_rows_from_settlement(
             "simulation_paths": lock.simulation.actual_paths,
             "settled_paths": 0 if forecast is None else forecast.settled_paths,
             "rng_seed_id": lock.simulation.seed_id,
-            "mc_standard_error": 0.0 if forecast is None else forecast.mc_standard_error,
+            "mc_standard_error": (
+                0.0 if forecast is None or market_override else forecast.mc_standard_error
+            ),
             "probability_raw": probability_raw,
-            "probability_settled": None if forecast is None else forecast.probability_settled,
+            "probability_settled": probability_raw,
             "probability_submitted": submitted_integer,
             "data_grade": "C" if forecast is None else forecast.data_grade,
             "resolution_status": resolution.state,
@@ -423,6 +441,7 @@ def ledger_rows_from_settlement(
             "support_reason_code": resolution.unavailable_reason,
             "match_retired": outcome.retired_player_id is not None,
             "policy_flags": lock.warnings
+            + (("MATCH_WIN_PINNACLE_NO_VIG_V1",) if market_override else ())
             + (
                 ()
                 if forecast is None or forecast.policy_issue is None

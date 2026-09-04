@@ -34,6 +34,10 @@ from tennis_model.estimation.game_day_elo import (  # noqa: E402
     load_game_day_elo_fit,
 )
 from tennis_model.locking import FIXED_100K_V1_POLICY, PathCountPolicy  # noqa: E402
+from tennis_model.market import (  # noqa: E402
+    load_pinnacle_moneyline_snapshot,
+    select_latest_pinnacle_moneyline,
+)
 from tennis_model.props.settlement import ComparisonOperator  # noqa: E402
 from tennis_model.simulation import (  # noqa: E402
     ACE_COMPARE,
@@ -55,6 +59,11 @@ parser.add_argument("--smoke-paths", type=int, default=5_000)
 parser.add_argument("--seed-offset", type=int, default=0)
 parser.add_argument("--workers", type=int, default=12)
 parser.add_argument("--checkpoint-paths", type=int, default=5_000)
+parser.add_argument(
+    "--pinnacle-snapshot",
+    type=Path,
+    help="Required immutable two-sided Pinnacle moneyline snapshot for v1.3.",
+)
 parser.add_argument(
     "--checkpoint-root",
     type=Path,
@@ -213,7 +222,7 @@ framework_versions = {snapshot.framework_version for snapshot in snapshots.value
 if len(framework_versions) != 1:
     raise RuntimeError(f"mixed operational framework versions: {framework_versions}")
 framework_version = next(iter(framework_versions))
-uses_v1_1 = framework_version in {"v1.1-candidate", "v1.1", "v1.2"}
+uses_v1_1 = framework_version in {"v1.1-candidate", "v1.1", "v1.2", "v1.3"}
 
 fitness_config = None
 fitness_fit_path = None
@@ -222,7 +231,9 @@ fitness_fits = None
 fitness_history = None
 if uses_v1_1:
     v1_1_config_path = repo / (
-        "config/model_v1_2.yaml"
+        "config/model_v1_3.yaml"
+        if framework_version == "v1.3"
+        else "config/model_v1_2.yaml"
         if framework_version == "v1.2"
         else "config/model_v1_1.yaml"
     )
@@ -249,6 +260,27 @@ if uses_v1_1:
         raise RuntimeError("production v1.1 requires strength-complete v4 snapshots")
 elif framework_version != "v1.0":
     raise RuntimeError(f"unsupported operational framework version: {framework_version}")
+
+pinnacle_snapshot = None
+pinnacle_snapshot_sha256 = None
+pinnacle_snapshot_path = None
+if framework_version == "v1.3":
+    if args.pinnacle_snapshot is None:
+        parser.error("--pinnacle-snapshot is required for v1.3")
+    source_pinnacle_path = args.pinnacle_snapshot.resolve()
+    if not source_pinnacle_path.is_file():
+        raise FileNotFoundError(source_pinnacle_path)
+    pinnacle_snapshot, pinnacle_snapshot_sha256 = load_pinnacle_moneyline_snapshot(
+        source_pinnacle_path
+    )
+    pinnacle_snapshot_path = (
+        output
+        / "retained"
+        / f"pinnacle_moneylines_{pinnacle_snapshot_sha256[:16]}.json"
+    )
+    mod.write_immutable(pinnacle_snapshot_path, source_pinnacle_path.read_bytes())
+elif args.pinnacle_snapshot is not None:
+    parser.error("--pinnacle-snapshot may only be used with v1.3")
 missing_duration_tours = sorted(
     {
         item["tour"].value
@@ -286,7 +318,13 @@ schedule_observed = min(
 results = []
 
 
-def retained_artifacts(tour, snapshot, eligibility_path, fitness_input_path=None):
+def retained_artifacts(
+    tour,
+    snapshot,
+    eligibility_path,
+    fitness_input_path=None,
+    market_snapshot_path=None,
+):
     if (
         snapshot.retirement_artifact is None
         or snapshot.inactivity_configuration is None
@@ -333,7 +371,9 @@ def retained_artifacts(tour, snapshot, eligibility_path, fitness_input_path=None
             "model_config",
             repo
             / (
-                "config/model_v1_2.yaml"
+                "config/model_v1_3.yaml"
+                if snapshot.framework_version == "v1.3"
+                else "config/model_v1_2.yaml"
                 if snapshot.framework_version == "v1.2"
                 else "config/model_v1_1.yaml"
                 if snapshot.framework_version in {"v1.1-candidate", "v1.1"}
@@ -372,6 +412,8 @@ def retained_artifacts(tour, snapshot, eligibility_path, fitness_input_path=None
                 ),
             )
         )
+    if market_snapshot_path is not None:
+        records.append(mod.retained_record("market_odds", market_snapshot_path))
     return tuple(records)
 
 
@@ -592,8 +634,23 @@ for item in selected_matches:
         resolved_at_utc=schedule_source["retrieved_at_utc"],
     )
     eligibility_path = source_operational / f"training_eligibility_{tour.value.lower()}.json"
+    market_match_winner = None
+    if pinnacle_snapshot is not None and pinnacle_snapshot_sha256 is not None:
+        market_match_winner = select_latest_pinnacle_moneyline(
+            pinnacle_snapshot,
+            snapshot_sha256=pinnacle_snapshot_sha256,
+            official_match_id=official_id,
+            player_a_id=str(left["id"]),
+            player_b_id=str(right["id"]),
+            information_cutoff_utc=cutoff,
+            scheduled_start_utc=start,
+        )
     artifacts = retained_artifacts(
-        tour, snapshots[tour], eligibility_path, fitness_input_path
+        tour,
+        snapshots[tour],
+        eligibility_path,
+        fitness_input_path,
+        pinnacle_snapshot_path,
     )
     existing = store.revision_directory(canonical.base_lock_id, 1)
     if existing.exists():
@@ -622,11 +679,17 @@ for item in selected_matches:
             else NEAREST_DURATION_DISPLAY_POLICY
         )
         if str(prop_config.get("bundle", "standard")) == "r32":
-            def player_for_side(side_key: str, default: str):
-                side = str(prop_config.get(side_key, default))
+            def player_for_side(
+                side_key: str,
+                default: str,
+                config=prop_config,
+                left_player=left,
+                right_player=right,
+            ):
+                side = str(config.get(side_key, default))
                 if side not in {"left", "right"}:
                     raise RuntimeError(f"fixture {side_key} must be left or right")
-                return right if side == "right" else left
+                return right_player if side == "right" else left_player
 
             unforced_error_player = player_for_side(
                 "unforced_error_side", comparison_side
@@ -689,6 +752,7 @@ for item in selected_matches:
             simulation_checkpoint_dir=checkpoint_root / official_id,
             simulation_checkpoint_paths=args.checkpoint_paths,
             simulation_progress=True,
+            market_match_winner=market_match_winner,
         )
     verified = store.verify(lock.base_lock_id, lock.revision)
     player_names = {str(left["id"]): str(left["name"]), str(right["id"]): str(right["name"])}
@@ -715,10 +779,48 @@ for item in selected_matches:
             else estimate.mc_stopping_status.value,
             "mc_error": estimate.mc_standard_error,
             "prop_estimates": [item.model_dump(mode="json") for item in lock.prop_estimates],
-            "match_win_probability": {
+            "effective_prop_estimates": [
+                {
+                    "prop_id": item.prop_id,
+                    "prop": item.prop.model_dump(mode="json"),
+                    "probability": lock.effective_prop_probability(item.prop_id),
+                    "submission_integer": lock.effective_prop_submission_integer(
+                        item.prop_id
+                    ),
+                    "probability_source": lock.effective_prop_source(item.prop_id),
+                    "simulation_probability": item.probability_raw,
+                }
+                for item in lock.prop_estimates
+            ],
+            "match_win_probability": (
+                {
+                    player_names[player_id]: probability
+                    for player_id, probability in (
+                        (
+                            lock.market_match_winner.player_a_id,
+                            lock.market_match_winner.player_a_no_vig_probability,
+                        ),
+                        (
+                            lock.market_match_winner.player_b_id,
+                            lock.market_match_winner.player_b_no_vig_probability,
+                        ),
+                    )
+                }
+                if lock.market_match_winner is not None
+                else {
+                    player_names[row.player_id]: row.match_win_probability
+                    for row in lock.match_summary.players
+                }
+            ),
+            "simulated_match_win_probability": {
                 player_names[row.player_id]: row.match_win_probability
                 for row in lock.match_summary.players
             },
+            "market_match_winner": (
+                None
+                if lock.market_match_winner is None
+                else lock.market_match_winner.model_dump(mode="json")
+            ),
             "exact_score_probability": [
                 {
                     "winner": player_names[row.winner_id],
@@ -768,7 +870,12 @@ for item in selected_matches:
     )
 
 report = {
-    "schema_version": "configured-usopen-match-batch/v1",
+    "schema_version": (
+        "configured-usopen-match-batch/v2"
+        if framework_version == "v1.3"
+        else "configured-usopen-match-batch/v1"
+    ),
+    "framework_version": framework_version,
     "batch_information_cutoff_utc": cutoff.isoformat(),
     "official_source_capture_id": capture.name,
     "base_run_id": args.base_run_id,

@@ -107,8 +107,8 @@ def test_canonical_match_identity_is_independent_of_forecast_state() -> None:
 def test_milestone81_prop_policy_gates_and_integer_preview() -> None:
     percent = FIRST_SERVE_WIN_PCT("A", ComparisonOperator.MORE_THAN, 65)
     decision = assess_prop_support(percent)
-    assert decision.status is PropSupportStatus.POLICY_DISABLED
-    assert decision.reason_code == "FIRST_SERVE_WIN_PERCENT_DISPLAY_CONVERSION_UNRESOLVED"
+    assert decision.status is PropSupportStatus.SUPPORTED
+    assert decision.reason_code is None
 
     resolved_percent = PropSpec(
         kind="FIRST_SERVE_WIN_PCT",
@@ -125,16 +125,20 @@ def test_milestone81_prop_policy_gates_and_integer_preview() -> None:
         threshold=20,
     )
     assert assess_prop_support(winners).status is PropSupportStatus.POLICY_DISABLED
-    implemented_policy_but_missing_generator = PropSpec(
+    implemented_winner_prop = PropSpec(
         kind="WINNERS",
         subject_ids=("A",),
         operator=ComparisonOperator.MORE_THAN,
         threshold=20,
-        scope={"official_accounting_version": "fixture/v1"},
+        scope={
+            "accounting_convention": (
+                "usopen-winners-include-aces-ue-include-double-faults/v1"
+            )
+        },
     )
     assert (
-        assess_prop_support(implemented_policy_but_missing_generator).status
-        is PropSupportStatus.NOT_IMPLEMENTED
+        assess_prop_support(implemented_winner_prop).status
+        is PropSupportStatus.SUPPORTED
     )
     assert integer_submission_preview(0.0) == 0
     assert integer_submission_preview(0.5049) == 50

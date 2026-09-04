@@ -582,7 +582,7 @@ def test_missing_stats_and_unresolved_display_policy_are_prop_level_only(
     by_kind = {item.prop.kind: item for item in settlement.resolutions}
     assert by_kind["PLAYER_ACES"].support_status.value == "DATA_UNAVAILABLE"
     assert by_kind["PLAYER_DF"].support_status.value == "DATA_UNAVAILABLE"
-    assert by_kind["FIRST_SERVE_WIN_PCT"].support_status.value == "POLICY_DISABLED"
+    assert by_kind["FIRST_SERVE_WIN_PCT"].support_status.value == "DATA_UNAVAILABLE"
     assert all(
         item.availability_phase.value == "PROP_UNAVAILABLE_POST_REVEAL"
         for item in settlement.resolutions
@@ -656,9 +656,9 @@ def test_rolling_origin_selects_only_safe_snapshot_and_reveals_after_lock(
     }
     assert len(revealer.revealed) == 2
     assert report.calibration.settled_rows > 0
-    # Two player-level first-serve percentages per match remain unavailable when
-    # official historical player stats are absent; missing is never coerced to zero.
-    assert report.calibration.unavailable_rows == 4
+    # The fixture includes first-serve counts for both players in both matches,
+    # so every row in the fixed core grid is settleable.
+    assert report.calibration.unavailable_rows == 0
     assert report.exclusion_counts == ()
     persisted_run = load_backtest_run_manifest(lock_store.root / "_backtest_runs" / report.run_id)
     assert persisted_run == report.run_manifest

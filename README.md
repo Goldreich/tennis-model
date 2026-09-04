@@ -9,14 +9,14 @@ match-day fitness adjustment, and simulates complete matches under legal tennis
 scoring. Match, player, and compound prop probabilities are derived from the
 same joint simulation paths.
 
-> **Current framework:** Tennis Model v1.2  
-> **Frozen base:** Tennis Model v1.1  
+> **Current framework:** Tennis Model v1.3
+> **Frozen simulation base:** Tennis Model v1.2
 > **Archived baseline:** Tennis Model v1.0  
 > **Runtime:** Python 3.12
 
-This is a research and probabilistic-forecasting project. It does not use
-bookmaker odds, prediction-market probabilities, or crowd forecasts as model
-inputs.
+This is a research and probabilistic-forecasting project. v1.3 uses a narrowly
+defined Pinnacle no-vig input for the standalone match-winner forecast. Market
+information does not enter the joint simulation or any other prop.
 
 ## Forecasts
 
@@ -32,9 +32,9 @@ The simulation framework supports probabilities and distributions for:
 - player-to-player count comparisons; and
 - compound propositions derived from the same simulated match paths.
 
-Every supported prop is evaluated from complete match simulations rather than
-being estimated independently. This preserves dependencies between match
-length, score, serve counts, rally outcomes, and the winner.
+Except for v1.3's standalone match-winner forecast, supported props are
+evaluated from complete match simulations. This preserves dependencies between
+match length, score, serve counts, rally outcomes, and the simulated winner.
 
 ## Methodology
 
@@ -105,13 +105,26 @@ The scoring engine simulates legal tennis matches point by point, including:
 Duration, serve statistics, rally outcomes, and settlement quantities are
 attached to these same paths.
 
+### Standalone match winner
+
+Tennis Model v1.3 answers `MATCH_WIN(player)` with the latest available valid
+two-sided Pinnacle moneyline observed before the information cutoff and match
+start. Each side's reciprocal decimal price is normalized by the sum of both
+reciprocal prices, removing the quoted two-way overround.
+
+The original v1.2 path probability remains in every lock as an auditable
+simulation diagnostic. Pinnacle does not retune the simulated paths, so exact
+scores, deciding sets, tiebreaks, duration, and player statistics remain the
+model's internally generated estimates.
+
 ## Model versions
 
 | Version | Status | Principal contribution |
 |---|---|---|
 | **v1.0** | Archived | Five-component serve/return model, scoring engine, duration, retirement, simulation, and immutable locks |
 | **v1.1** | Frozen base | Surface Elo strength anchor and temporary match-day fitness |
-| **v1.2** | Active | Winners/unforced-errors rally layer with sequential Bayesian player updates |
+| **v1.2** | Frozen simulation base | Winners/unforced-errors rally layer with sequential Bayesian player updates |
+| **v1.3** | Active | Cutoff-safe Pinnacle no-vig probability for the standalone match-winner prop |
 
 Probability-affecting changes require an explicit model-version change.
 Engineering refactors and performance optimizations must preserve the
@@ -154,6 +167,7 @@ Numerical forecasts are designed to be reproducible from:
 - canonical player and match identities;
 - the code version;
 - the simulation seed and path policy;
+- the retained Pinnacle quote snapshot and selected two-sided prices for v1.3;
 - the information scenario; and
 - the settlement-policy version.
 
@@ -209,6 +223,7 @@ missing rather than being converted to zero.
 The principal methodological documents are:
 
 - [Tennis Model v1.2 Specification](docs/Tennis_Model_v1.2_Specification.md)
+- [Tennis Model v1.3 Specification](docs/Tennis_Model_v1.3_Specification.md)
 - [Tennis Model v1.1 Production Specification](docs/Tennis_Model_v1.1_Production_Specification.md)
 - [Tennis Model v1.0 Specification](docs/Tennis_Model_v1.0_Specification.md)
 - [Rally-Termination Model](docs/RALLY_TERMINATION_V1.md)
@@ -235,6 +250,8 @@ the primary guide to the current model.
 - Model calibration and comparative performance must be evaluated
   out-of-sample; a strong result in one tournament is not conclusive evidence of
   general superiority.
+- v1.3's match-winner forecast inherits Pinnacle's market availability,
+  liquidity, source-mapping, and stale-price limitations.
 
 ## Research use
 

@@ -206,19 +206,26 @@ def render_locked_match_card(lock: PredictionSnapshot) -> str:
         ]
     )
     for estimate in lock.prop_estimates:
+        market_override = (
+            lock.market_match_winner is not None and estimate.prop.kind == "MATCH_WIN"
+        )
         raw_probability = (
-            estimate.probability_raw
+            lock.effective_prop_probability(estimate.prop_id)
+            if market_override
+            else estimate.probability_raw
             if estimate.mc_policy_version is None
             else estimate.model_probability_raw
         )
         raw = "--" if raw_probability is None else f"{raw_probability:.3%}"
         model_integer = (
-            estimate.submitted_integer
+            lock.effective_prop_submission_integer(estimate.prop_id)
+            if market_override
+            else estimate.submitted_integer
             if estimate.mc_policy_version is None
             else estimate.model_probability_integer
         )
         integer = "--" if model_integer is None else f"{model_integer}%"
-        confidence_sequence = (
+        confidence_sequence = "--" if market_override else (
             "--"
             if estimate.mc_confidence_sequence_lower is None
             or estimate.mc_confidence_sequence_upper is None
@@ -227,12 +234,15 @@ def render_locked_match_card(lock: PredictionSnapshot) -> str:
                 f"{estimate.mc_confidence_sequence_upper:.3%}]"
             )
         )
-        stopping_status = (
+        stopping_status = "Pinnacle no-vig" if market_override else (
             "legacy fixed-sample"
             if estimate.mc_stopping_status is None
             else estimate.mc_stopping_status.value
         )
         platform_integer = (
+            f"{lock.effective_prop_submission_integer(estimate.prop_id)}%"
+            if market_override
+            else
             "--"
             if estimate.platform_submission_integer is None
             else f"{estimate.platform_submission_integer}%"
@@ -242,9 +252,18 @@ def render_locked_match_card(lock: PredictionSnapshot) -> str:
             f"{estimate.yes_paths} | {estimate.no_paths} | {estimate.void_paths} | "
             f"{estimate.unresolved_paths} | {estimate.settled_paths} | {raw} | {integer} | "
             f"{confidence_sequence} | {stopping_status} | {estimate.total_paths} | "
-            f"{estimate.probability_settled:.2%} | {estimate.support_status.value} | "
+            f"{lock.effective_prop_probability(estimate.prop_id):.2%} | "
+            f"{estimate.support_status.value} | "
             f"{platform_integer} | {estimate.data_grade} |"
         )
+        if market_override:
+            assert lock.market_match_winner is not None
+            lines.append(
+                "  - v1.3 winner override: effective probability uses Pinnacle's "
+                f"two-sided no-vig price observed at "
+                f"{lock.market_match_winner.observed_at_utc.isoformat()}; the "
+                f"simulation-only estimate remains {estimate.probability_settled:.2%}."
+            )
         if estimate.model_probability_raw == 0.0:
             lines.append(
                 "  - Endpoint interpretation: 0% means no Yes outcomes were observed among "

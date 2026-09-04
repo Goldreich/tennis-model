@@ -28,6 +28,12 @@ from tennis_model.estimation.duration_model import (
     PersistedDurationFitArtifact,
     load_duration_fit_artifact,
 )
+from tennis_model.estimation.elo import (
+    PersistedSurfaceEloArtifact,
+    SurfaceEloError,
+    SurfaceEloFit,
+    load_surface_elo_artifact,
+)
 from tennis_model.estimation.inactivity import InactivityConfigurationArtifact
 from tennis_model.estimation.retirement import (
     PersistedRetirementFitArtifact,
@@ -47,17 +53,10 @@ from tennis_model.estimation.strength import (
     StrengthModelError,
     load_strength_artifact,
 )
-from tennis_model.estimation.elo import (
-    PersistedSurfaceEloArtifact,
-    SurfaceEloError,
-    SurfaceEloFit,
-    load_surface_elo_artifact,
-)
 from tennis_model.estimation.strength_integration import (
-    StrengthIntegrationArtifactFit,
     PersistedStrengthIntegrationArtifact,
+    StrengthIntegrationArtifactFit,
     StrengthIntegrationError,
-    StrengthIntegrationFit,
     load_strength_integration_artifact,
 )
 from tennis_model.schemas import FrozenModel, Tour
@@ -225,7 +224,7 @@ class ModelSnapshot(FrozenModel):
         "serve-model-snapshot/v3",
         "serve-model-snapshot/v4",
     ] = "serve-model-snapshot/v1"
-    framework_version: Literal["v1.0", "v1.1-candidate", "v1.1", "v1.2"]
+    framework_version: Literal["v1.0", "v1.1-candidate", "v1.1", "v1.2", "v1.3"]
     implementation_version: Literal["serve-components-map-laplace/v1"]
     tour: Tour
     fitted_at_utc: datetime
@@ -316,7 +315,12 @@ class ModelSnapshot(FrozenModel):
             ):
                 raise ValueError("snapshot duration reference differs from its tour or cutoff")
         if self.schema_version == "serve-model-snapshot/v4":
-            if self.framework_version not in {"v1.1-candidate", "v1.1", "v1.2"}:
+            if self.framework_version not in {
+                "v1.1-candidate",
+                "v1.1",
+                "v1.2",
+                "v1.3",
+            }:
                 raise ValueError("v4 snapshot must identify a v1.1 framework")
             if (
                 self.duration_artifact is None
@@ -343,7 +347,7 @@ class ModelSnapshot(FrozenModel):
             if self.strength_integration_artifact.information_cutoff_utc > self.data_cutoff_utc:
                 raise ValueError("v1.1 integration artifact exceeds the component cutoff")
             if (
-                self.framework_version != "v1.2"
+                self.framework_version not in {"v1.2", "v1.3"}
                 and self.strength_anchor_artifact.information_cutoff_utc
                 > self.data_cutoff_utc
             ):
@@ -784,6 +788,8 @@ __all__ = [
     "V11ArtifactReference",
     "create_model_snapshot",
     "create_v1_1_snapshot",
+    "create_v1_2_snapshot",
+    "create_v1_3_snapshot",
     "load_snapshot_duration_artifact",
     "load_snapshot_fits",
     "load_snapshot_retirement_artifact",
@@ -812,14 +818,34 @@ def create_v1_2_snapshot(
     return ModelSnapshot.model_validate(payload)
 
 
+def create_v1_3_snapshot(
+    base_snapshot: ModelSnapshot,
+    *,
+    framework_config_hash: str,
+) -> ModelSnapshot:
+    """Create a v1.3 snapshot that immutably inherits frozen v1.2 state."""
+    if base_snapshot.framework_version != "v1.2":
+        raise ModelSnapshotError("v1.3 must inherit a frozen v1.2 snapshot")
+
+    payload = base_snapshot.model_dump(mode="python")
+    payload.update(
+        framework_version="v1.3",
+        base_snapshot_id=base_snapshot.snapshot_id,
+        framework_config_hash=_sha256(
+            framework_config_hash, field="framework_config_hash"
+        ),
+    )
+    return ModelSnapshot.model_validate(payload)
+
+
 def revise_v1_2_strength_anchor(
     snapshot: ModelSnapshot,
     *,
     strength_anchor: PersistedSurfaceEloArtifact,
 ) -> ModelSnapshot:
     """Return a new v1.2 snapshot referencing a later immutable Elo state."""
-    if snapshot.framework_version != "v1.2":
-        raise ModelSnapshotError("live strength-anchor revisions require v1.2")
+    if snapshot.framework_version not in {"v1.2", "v1.3"}:
+        raise ModelSnapshotError("live strength-anchor revisions require v1.2 or v1.3")
     if strength_anchor.fit.tour is not snapshot.tour:
         raise ModelSnapshotError("live strength anchor belongs to another tour")
     if snapshot.strength_anchor_artifact is None:

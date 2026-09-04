@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 
@@ -66,6 +66,7 @@ from tennis_model.locking.path_counts import (
 )
 from tennis_model.locking.provenance import capture_runtime_fingerprint, enforce_dirty_tree_policy
 from tennis_model.locking.store import LockStore
+from tennis_model.market import PinnacleMatchWinnerSelection
 from tennis_model.props.policy import assess_prop_support, prop_generation_available
 from tennis_model.props.rounding import (
     SPORTSPREDICT_SUBMISSION_POLICY,
@@ -82,7 +83,9 @@ from tennis_model.simulation.match import (
     evaluate_settlement,
     simulate_matches,
 )
-from tennis_model.simulation.parallel import simulate_matches_parallel
+from tennis_model.simulation.parallel import (
+    simulate_matches_parallel as _simulate_matches_parallel_base,
+)
 from tennis_model.simulation.parameters import (
     MatchContext,
     MatchParameterDistribution,
@@ -622,6 +625,7 @@ def create_prediction_lock(
     simulation_checkpoint_dir: str | Path | None = None,
     simulation_checkpoint_paths: int = 5_000,
     simulation_progress: bool = False,
+    market_match_winner: PinnacleMatchWinnerSelection | None = None,
 ) -> PredictionSnapshot:
     """Estimate, simulate, evaluate, summarize, and optionally persist one lock.
 
@@ -656,6 +660,18 @@ def create_prediction_lock(
         raise LockCreationError("information bundle and match context scenarios differ")
     if not props:
         raise LockCreationError("prediction lock requires at least one prop")
+    direct_match_wins = tuple(
+        prop for prop in props if isinstance(prop, PropSpec) and prop.kind == "MATCH_WIN"
+    )
+    if snapshot.framework_version == "v1.3":
+        if market_match_winner is None:
+            raise LockCreationError("v1.3 requires a cutoff-safe Pinnacle match-winner quote")
+        if canonical_match_identity is None:
+            raise LockCreationError("v1.3 requires canonical match identity")
+        if len(direct_match_wins) != 1:
+            raise LockCreationError("v1.3 requires exactly one standalone MATCH_WIN prop")
+    elif market_match_winner is not None:
+        raise LockCreationError("market match-winner inputs require framework v1.3")
     resolved_inactivity_records = _resolve_inactivity_records(
         information, context, inactivity_records
     )
@@ -1048,6 +1064,13 @@ def create_prediction_lock(
                     ),
                 }
             ),
+            **(
+                {}
+                if market_match_winner is None
+                else {
+                    "market_match_winner": market_match_winner.model_dump(mode="json")
+                }
+            ),
         }
     )
 
@@ -1102,7 +1125,11 @@ def create_prediction_lock(
     )
     lock = PredictionSnapshot(
         schema_version=(
-            "prediction-lock/v4"
+            "prediction-lock/v5"
+            if snapshot.framework_version == "v1.3"
+            and canonical_match_identity is not None
+            and distribution.duration is not None
+            else "prediction-lock/v4"
             if canonical_match_identity is not None and distribution.duration is not None
             else "prediction-lock/v3"
             if canonical_match_identity is not None
@@ -1133,6 +1160,7 @@ def create_prediction_lock(
         training_eligibility=training_eligibility,
         runtime=(runtime if canonical_match_identity is not None else None),
         retained_artifacts=retained_artifacts,
+        market_match_winner=market_match_winner,
         lock_configuration_sha256=lock_configuration_sha256,
         match_parameters=distribution.to_record(),
         parameter_summaries=direction_summaries,
@@ -1362,7 +1390,7 @@ def reproduce_prediction_lock(
     )
 
 # --- v1.2 rally-aware checkpoint namespace ----------------------------------
-_simulate_matches_parallel_without_rally_namespace = simulate_matches_parallel
+_simulate_matches_parallel_without_rally_namespace = _simulate_matches_parallel_base
 
 
 def simulate_matches_parallel(

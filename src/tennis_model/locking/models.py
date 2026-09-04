@@ -25,6 +25,7 @@ from tennis_model.locking.path_counts import (
     AdaptivePropDiagnostics,
     MCStoppingStatus,
 )
+from tennis_model.market import PinnacleMatchWinnerSelection
 from tennis_model.props.rounding import (
     MODEL_ROUNDING_POLICY_VERSION,
     PlatformSubmissionPolicy,
@@ -40,6 +41,7 @@ from ._json import require_sha256, sha256_json
 LOCK_SCHEMA_VERSION: Literal["prediction-lock/v1"] = "prediction-lock/v1"
 LOCK_OPERATIONAL_SCHEMA_VERSION: Literal["prediction-lock/v3"] = "prediction-lock/v3"
 LOCK_DURATION_SCHEMA_VERSION: Literal["prediction-lock/v4"] = "prediction-lock/v4"
+LOCK_MARKET_SCHEMA_VERSION: Literal["prediction-lock/v5"] = "prediction-lock/v5"
 LEDGER_SCHEMA_VERSION: Literal["calibration-ledger/v1"] = "calibration-ledger/v1"
 LEDGER_B6_C6_SCHEMA_VERSION: Literal["calibration-ledger/v2"] = "calibration-ledger/v2"
 LEDGER_OPERATIONAL_SCHEMA_VERSION: Literal["calibration-ledger/v3"] = "calibration-ledger/v3"
@@ -282,6 +284,7 @@ class RetainedArtifactRecord(LockModel):
         "strength_integration",
         "fitness_fit",
         "fitness_input",
+        "market_odds",
     ]
     artifact_id: str
     path: str
@@ -1102,6 +1105,7 @@ class PredictionSnapshot(LockModel):
         "prediction-lock/v2",
         "prediction-lock/v3",
         "prediction-lock/v4",
+        "prediction-lock/v5",
     ] = LOCK_SCHEMA_VERSION
     identity_schema_version: Literal["legacy-forecast-state/v1", "canonical-match-identity/v2"] = (
         "legacy-forecast-state/v1"
@@ -1113,7 +1117,7 @@ class PredictionSnapshot(LockModel):
     parent_revision: int | None = Field(default=None, ge=1)
     parent_content_sha256: str | None = None
     revision_reason: LockRevisionReason
-    framework_version: Literal["v1.0", "v1.1-candidate", "v1.1", "v1.2"]
+    framework_version: Literal["v1.0", "v1.1-candidate", "v1.1", "v1.2", "v1.3"]
     settlement_policy: SettlementPolicyRecord
     context: MatchContext
     information: InformationBundle
@@ -1124,6 +1128,7 @@ class PredictionSnapshot(LockModel):
     training_eligibility: HistoricalTrainingEligibilityProvenance | None = None
     runtime: RuntimeFingerprint | None = None
     retained_artifacts: tuple[RetainedArtifactRecord, ...] = ()
+    market_match_winner: PinnacleMatchWinnerSelection | None = None
     lock_configuration_sha256: str
     match_parameters: MatchParameterRecord
     parameter_summaries: tuple[ServingDirectionSummary, ServingDirectionSummary]
@@ -1145,6 +1150,8 @@ class PredictionSnapshot(LockModel):
         """
 
         payload = super().model_dump(*args, **kwargs)
+        if self.framework_version != "v1.3":
+            payload.pop("market_match_winner", None)
         if self.framework_version == "v1.0":
             match_parameters = payload.get("match_parameters")
             if isinstance(match_parameters, dict):
@@ -1182,7 +1189,11 @@ class PredictionSnapshot(LockModel):
 
     @model_validator(mode="after")
     def lock_is_coherent(self) -> Self:
-        if self.schema_version in {"prediction-lock/v3", "prediction-lock/v4"}:
+        if self.schema_version in {
+            "prediction-lock/v3",
+            "prediction-lock/v4",
+            "prediction-lock/v5",
+        }:
             if self.identity_schema_version != "canonical-match-identity/v2":
                 raise ValueError("v3 prediction locks require canonical identity schema v2")
             if self.canonical_match_identity is None:
@@ -1235,9 +1246,9 @@ class PredictionSnapshot(LockModel):
                 "settlement_policy",
                 "code_archive",
             }
-            if self.schema_version == "prediction-lock/v4":
+            if self.schema_version in {"prediction-lock/v4", "prediction-lock/v5"}:
                 required_artifact_kinds.add("duration_fit")
-            if self.framework_version in {"v1.1-candidate", "v1.1", "v1.2"}:
+            if self.framework_version in {"v1.1-candidate", "v1.1", "v1.2", "v1.3"}:
                 required_artifact_kinds.update(
                     {
                         "fitness_fit",
@@ -1246,6 +1257,8 @@ class PredictionSnapshot(LockModel):
                         "strength_integration",
                     }
                 )
+            if self.framework_version == "v1.3":
+                required_artifact_kinds.add("market_odds")
             if {item.kind for item in self.retained_artifacts} != required_artifact_kinds:
                 raise ValueError("v3 locks require one retained artifact for every required kind")
             if len({item.artifact_id for item in self.retained_artifacts}) != len(
@@ -1270,6 +1283,46 @@ class PredictionSnapshot(LockModel):
             raise ValueError("lock revisions require the immediately preceding parent")
         if self.framework_version != self.match_parameters.snapshot.framework_version:
             raise ValueError("lock framework version differs from model snapshot")
+        if self.framework_version == "v1.3":
+            if self.schema_version != "prediction-lock/v5":
+                raise ValueError("v1.3 requires prediction-lock/v5")
+            if self.market_match_winner is None:
+                raise ValueError("v1.3 requires a Pinnacle match-winner selection")
+            if self.market_match_winner.official_match_id != (
+                self.canonical_match_identity.official_match_id
+                if self.canonical_match_identity is not None
+                else self.market_match_winner.official_match_id
+            ):
+                raise ValueError("Pinnacle selection identifies another official match")
+            if {
+                self.market_match_winner.player_a_id,
+                self.market_match_winner.player_b_id,
+            } != {self.context.player_a_id, self.context.player_b_id}:
+                raise ValueError("Pinnacle selection participants differ from match context")
+            if (
+                self.market_match_winner.observed_at_utc > self.context.information_cutoff_utc
+                or self.market_match_winner.snapshot_captured_at_utc
+                > self.context.information_cutoff_utc
+                or self.market_match_winner.observed_at_utc
+                >= self.context.scheduled_start_utc
+            ):
+                raise ValueError("Pinnacle selection is not cutoff-safe and pre-start")
+            direct_match_wins = tuple(
+                item for item in self.prop_estimates if item.prop.kind == "MATCH_WIN"
+            )
+            if len(direct_match_wins) != 1:
+                raise ValueError("v1.3 locks require exactly one standalone MATCH_WIN prop")
+            retained_market = tuple(
+                item for item in self.retained_artifacts if item.kind == "market_odds"
+            )
+            if (
+                len(retained_market) != 1
+                or retained_market[0].sha256
+                != self.market_match_winner.snapshot_sha256
+            ):
+                raise ValueError("v1.3 retained market snapshot differs from selected quote")
+        elif self.market_match_winner is not None or self.schema_version == "prediction-lock/v5":
+            raise ValueError("pre-v1.3 locks cannot contain a market winner selection")
         if self.context != self.match_parameters.context:
             raise ValueError("lock context differs from match parameters")
         if self.information.information_cutoff_utc != self.context.information_cutoff_utc:
@@ -1334,7 +1387,7 @@ class PredictionSnapshot(LockModel):
             ):
                 raise ValueError("player-level B6 incidence does not sum to match retirement")
         duration_parameters = getattr(self.match_parameters, "duration", None)
-        if self.schema_version == "prediction-lock/v4":
+        if self.schema_version in {"prediction-lock/v4", "prediction-lock/v5"}:
             if duration_parameters is None:
                 raise ValueError("v4 prediction locks require duration match parameters")
             if self.duration_model_artifact_id != duration_parameters.artifact_id:
@@ -1424,7 +1477,7 @@ class PredictionSnapshot(LockModel):
                     ),
                 }
             )
-        if self.schema_version == "prediction-lock/v4":
+        if self.schema_version in {"prediction-lock/v4", "prediction-lock/v5"}:
             configuration.update(
                 {
                     "duration_artifact_id": self.duration_model_artifact_id,
@@ -1434,9 +1487,42 @@ class PredictionSnapshot(LockModel):
                     "duration_rng_stream_version": self.simulation.duration_rng_stream_version,
                 }
             )
+        if self.market_match_winner is not None:
+            configuration["market_match_winner"] = self.market_match_winner.model_dump(
+                mode="json"
+            )
         if self.lock_configuration_sha256 != sha256_json(configuration):
             raise ValueError("lock configuration hash does not match configuration content")
         return self
+
+    def effective_prop_probability(self, prop_id: str) -> float | None:
+        estimate = next((item for item in self.prop_estimates if item.prop_id == prop_id), None)
+        if estimate is None:
+            raise KeyError(prop_id)
+        if self.market_match_winner is not None and estimate.prop.kind == "MATCH_WIN":
+            return self.market_match_winner.probability_for(estimate.prop.subject_ids[0])
+        return estimate.probability_raw
+
+    def effective_prop_submission_integer(self, prop_id: str) -> int | None:
+        estimate = next((item for item in self.prop_estimates if item.prop_id == prop_id), None)
+        if estimate is None:
+            raise KeyError(prop_id)
+        if self.market_match_winner is not None and estimate.prop.kind == "MATCH_WIN":
+            probability = self.market_match_winner.probability_for(estimate.prop.subject_ids[0])
+            return min(99, max(1, model_probability_integer(probability)))
+        if estimate.platform_submission_integer is not None:
+            return estimate.platform_submission_integer
+        if estimate.submitted_integer is not None:
+            return estimate.submitted_integer
+        return estimate.model_probability_integer
+
+    def effective_prop_source(self, prop_id: str) -> str:
+        estimate = next((item for item in self.prop_estimates if item.prop_id == prop_id), None)
+        if estimate is None:
+            raise KeyError(prop_id)
+        if self.market_match_winner is not None and estimate.prop.kind == "MATCH_WIN":
+            return self.market_match_winner.no_vig_policy_version
+        return "joint-match-simulation/v1"
 
     @property
     def lock_id(self) -> str:
@@ -1475,7 +1561,7 @@ class PredictionSnapshot(LockModel):
                     if isinstance(estimate, dict):
                         for field_name in adaptive_estimate_fields:
                             estimate.pop(field_name, None)
-        if self.schema_version != "prediction-lock/v4":
+        if self.schema_version not in {"prediction-lock/v4", "prediction-lock/v5"}:
             # These fields did not exist in the immutable v1--v3 payload
             # schemas.  Excluding their default values preserves the content
             # identity of already-published locks when they are loaded by the

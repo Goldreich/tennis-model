@@ -1,9 +1,8 @@
 # US Open live simulation workflow
 
-All new production locks use Tennis Model v1.1: frozen v1.0 serve components,
-surface Elo with the fixed 75% strength integration, and the retained
-minute-based game-day fitness assessment. Frozen v1.0 remains the archive and
-rollback model only.
+All new production locks use Tennis Model v1.3. The complete v1.2 simulation
+remains frozen, while a standalone match-winner forecast uses a retained,
+cutoff-safe Pinnacle two-sided no-vig probability.
 
 The live workflow is append-only. Each refresh creates a new source capture,
 model snapshot, operational snapshot bundle, and lock directory. Never reuse a
@@ -58,7 +57,8 @@ and all immutable provenance requirements pass.
   --output artifacts/live-usopen-2026/<batch-name> `
   --base-run-id <run-id> `
   --operational-name snapshot-<run-prefix>-v1 `
-  --policy adaptive `
+  --pinnacle-snapshot <pinnacle-moneylines.json> `
+  --policy fixed `
   --round R128 `
   --schedule-date 2026-08-31 `
   --schedule-source-id official-usopen-2026-schedule-day-9
@@ -93,5 +93,34 @@ player's C6 evidence. A fixture file contains:
 ```
 
 The player IDs and latest-match facts must be cutoff-safe and supported by the
-captured official source. Market odds, rankings, and crowd forecasts remain
-prohibited model inputs.
+captured official source.
+
+The Pinnacle file uses this immutable input contract:
+
+```json
+{
+  "schema_version": "pinnacle-moneyline-snapshot/v1",
+  "captured_at_utc": "2026-09-04T15:00:00Z",
+  "quotes": [
+    {
+      "schema_version": "pinnacle-moneyline-quote/v1",
+      "bookmaker": "Pinnacle",
+      "market": "match_winner",
+      "official_match_id": "1000",
+      "player_a_id": "canonical-player-a",
+      "player_b_id": "canonical-player-b",
+      "player_a_decimal_odds": 1.625,
+      "player_b_decimal_odds": 2.42,
+      "observed_at_utc": "2026-09-04T14:59:00Z",
+      "source_name": "retained-source-name",
+      "source_url": "https://source.example/match",
+      "source_payload_sha256": "<64-lowercase-hex-digest>"
+    }
+  ]
+}
+```
+
+The runner selects the latest eligible observation for each match, stores the
+snapshot with the lock, and blocks rather than falling back when a valid
+Pinnacle quote is unavailable. Other bookmakers, rankings, crowd forecasts,
+and market inputs for non-winner props remain prohibited.

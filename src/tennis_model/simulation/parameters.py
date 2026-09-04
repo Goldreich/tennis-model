@@ -22,6 +22,7 @@ from pydantic import ConfigDict, Field, field_validator, model_validator
 from scipy.special import expit  # type: ignore[import-untyped]
 
 from tennis_model.estimation.duration_model import DurationFitArtifact
+from tennis_model.estimation.elo import SurfaceEloFit, predict_surface_elo
 from tennis_model.estimation.inactivity import (
     InactivityAdjustment,
     InactivityAdjustmentState,
@@ -69,11 +70,11 @@ from tennis_model.estimation.snapshot import (
     load_snapshot_retirement_artifact,
     load_snapshot_v1_1_artifacts,
 )
-from tennis_model.estimation.elo import SurfaceEloFit, predict_surface_elo
 from tennis_model.estimation.strength import predict_strength
 from tennis_model.estimation.strength_integration import (
     StrengthIntegrationArtifactFit,
     StrengthIntegrationDraw,
+    StrengthIntegrationFit,
     StrengthMatchParameters,
     integrate_serve_performance,
     prepare_strength_match_parameters,
@@ -419,7 +420,7 @@ class _C6ComponentPlan:
 
 
 class MatchParameterProvenance(_ParameterModel):
-    framework_version: Literal["v1.0", "v1.1-candidate", "v1.1", "v1.2"]
+    framework_version: Literal["v1.0", "v1.1-candidate", "v1.1", "v1.2", "v1.3"]
     implementation_version: Literal[
         "match-parameters-laplace-beta/v1",
         "match-parameters-strength-integrated/v1",
@@ -484,7 +485,7 @@ class MatchParameterProvenance(_ParameterModel):
         )
         if (strength_ids[0] is None) != (strength_ids[1] is None):
             raise ValueError("v1.1 strength provenance IDs must be present together")
-        if self.framework_version in {"v1.1-candidate", "v1.1", "v1.2"}:
+        if self.framework_version in {"v1.1-candidate", "v1.1", "v1.2", "v1.3"}:
             if any(item is None for item in strength_ids):
                 raise ValueError("v1.1 provenance requires strength artifacts")
             if self.implementation_version != V11_MATCH_PARAMETER_IMPLEMENTATION_VERSION:
@@ -1767,7 +1768,7 @@ def estimate_match(
             best_of=context.best_of,
             scheduled_start_utc=context.scheduled_start_utc,
         )
-        if snapshot.framework_version in {"v1.1", "v1.2"}:
+        if snapshot.framework_version in {"v1.1", "v1.2", "v1.3"}:
             if not isinstance(anchor_fit, SurfaceEloFit):
                 raise MatchParameterError("production v1.1 requires the surface-Elo anchor")
             condition_values = {item.name: item.value for item in context.conditions}
@@ -2541,12 +2542,13 @@ def estimate_match(
     **kwargs: Any,
 ) -> MatchParameterDistribution:
     from dataclasses import replace as _replace
+
     from tennis_model.estimation.rally_termination import (
         prepare_production_match_parameters,
     )
 
     distribution = _estimate_match_without_rally(snapshot, context, **kwargs)
-    if snapshot.framework_version != "v1.2":
+    if snapshot.framework_version not in {"v1.2", "v1.3"}:
         return distribution
     try:
         rally = prepare_production_match_parameters(context)

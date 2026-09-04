@@ -174,7 +174,11 @@ class LockStore:
     ) -> Path:
         """Reserve, verify, fsync, and atomically publish one immutable revision."""
 
-        if lock.schema_version in {"prediction-lock/v3", "prediction-lock/v4"}:
+        if lock.schema_version in {
+            "prediction-lock/v3",
+            "prediction-lock/v4",
+            "prediction-lock/v5",
+        }:
             self.verify_retained_artifacts(lock)
         target = self.revision_directory(lock.base_lock_id, lock.revision)
         token = uuid4().hex
@@ -279,7 +283,11 @@ class LockStore:
     def load(self, base_lock_id: str, revision: int) -> StoredPredictionLock:
         directory = self.revision_directory(base_lock_id, revision)
         envelope = self._verify_directory(directory)
-        if envelope.lock.schema_version in {"prediction-lock/v3", "prediction-lock/v4"}:
+        if envelope.lock.schema_version in {
+            "prediction-lock/v3",
+            "prediction-lock/v4",
+            "prediction-lock/v5",
+        }:
             self.verify_retained_artifacts(envelope.lock)
         return envelope
 

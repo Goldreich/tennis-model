@@ -455,7 +455,7 @@ def test_settled_probability_fields_use_the_specified_denominators() -> None:
     assert estimate.probability_settled == 0.5
 
 
-def test_unresolved_official_rounding_is_blocked_not_guessed() -> None:
+def test_first_serve_percentage_uses_exact_ratio_without_rounding() -> None:
     path = _completed_path()
     stats = path.player_stats["A"]
     ambiguous = replace(
@@ -486,10 +486,11 @@ def test_unresolved_official_rounding_is_blocked_not_guessed() -> None:
         _batch(path),
         CANONICAL_SETTLEMENT_POLICY,
     )
-    assert estimate.unresolved_paths == 1
-    assert estimate.settled_paths == 0
-    with pytest.raises(PolicyBlockedError, match="unresolved official convention"):
-        evaluate_prop(prop, _batch(path))
+    assert estimate.unresolved_paths == 0
+    assert estimate.settled_paths == 1
+    assert estimate.no_paths == 1
+    evaluated = evaluate_prop(prop, _batch(path))
+    assert evaluated.probability_raw == 0.0
 
 
 def test_prop_policy_version_mismatch_is_blocked() -> None:

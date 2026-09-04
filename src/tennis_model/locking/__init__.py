@@ -4,6 +4,7 @@ from tennis_model.locking.card import render_locked_match_card
 from tennis_model.locking.diff import LockDiff, compare_locks
 from tennis_model.locking.models import (
     LOCK_DURATION_SCHEMA_VERSION,
+    LOCK_MARKET_SCHEMA_VERSION,
     LOCK_SCHEMA_VERSION,
     AdaptiveMCPolicyRecord,
     CodeProvenance,
@@ -57,11 +58,12 @@ from tennis_model.locking.store import (
 
 __all__ = [
     "ADAPTIVE_MC_CS_V1_POLICY",
+    "CORE_CAPABILITY_BLOCKERS",
     "FIXED_50K_V1_POLICY",
     "FIXED_100K_V1_POLICY",
-    "CORE_CAPABILITY_BLOCKERS",
     "FROZEN_PATH_COUNT_POLICY",
     "LOCK_DURATION_SCHEMA_VERSION",
+    "LOCK_MARKET_SCHEMA_VERSION",
     "LOCK_SCHEMA_VERSION",
     "AdaptiveMCPolicy",
     "AdaptiveMCPolicyRecord",
